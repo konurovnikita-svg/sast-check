@@ -27,42 +27,60 @@ jobs:
           - vulnerable-flask-app
           - webgoat
           - xvwa
+          - benchmark-java
 
     steps:
-      - name: Checkout ${{ matrix.project }}
+      - name: Checkout with submodules
         uses: actions/checkout@v4
         with:
-          repository: konuronikita-svg/sast-check
-          path: .
-          fetch-depth: 1
+          submodules: recursive # Выкачиваем код проектов
+          fetch-depth: 0
 
-      - name: Initialize CodeQL for ${{ matrix.project }}
+      - name: Create Dynamic CodeQL Config
+        # Создаем конфиг на лету, чтобы ограничить анализ только папкой текущего проекта
+        run: |
+          mkdir -p .github/codeql
+          cat <<EOF > .github/codeql/codeql-config.yml
+          name: "CodeQL config for ${{ matrix.project }}"
+          paths:
+            - repos/${{ matrix.project }}
+          paths-ignore:
+            - '**/test/**'
+            - '**/tests/**'
+            - '**/node_modules/**'
+          EOF
+
+      - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript, python, ruby, java-kotlin
-          
+          config-file: ./.github/codeql/codeql-config.yml # Подключаем сгенерированный конфиг
 
-      - name: Autobuild ${{ matrix.project }}
+      - name: Autobuild
         uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.project }}"
+          output: codeql-results # Сохраняем SARIF в известную папку
 
-      - name: Generate CSV Report from SARIF
+      - name: Generate CSV Report
+        # Парсим SARIF в читаемый CSV с указанием имени проекта
         run: |
-          
-      - name: Upload CodeQL SARIF Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: codeql-sarif-${{ matrix.project }}
-          path: ${{ github.workspace }}/**/*.sarif
-          retention-days: 30
+          SARIF_FILE=$(find codeql-results -name "*.sarif" -type f | head -n 1)
+          echo "project,rule_id,severity,file,line,message" > codeql-${{ matrix.project }}.csv
+          if [ -f "$SARIF_FILE" ]; then
+            jq -r --arg project "${{ matrix.project }}" '.runs[].results[] | [$project, .ruleId, .level, (.locations[0].physicalLocation.artifactLocation.uri // "N/A"), (.locations[0].physicalLocation.region.startLine // 0), (.message.text | gsub("\n"; " "))] | @csv' "$SARIF_FILE" >> codeql-${{ matrix.project }}.csv
+          else
+            echo "SARIF file not found, skipping CSV generation."
+          fi
 
-      - name: Upload CodeQL CSV Artifact
+      - name: Upload CodeQL SARIF & CSV
         uses: actions/upload-artifact@v4
         with:
-          name: codeql-csv-${{ matrix.project }}
-          path: codeql-${{ matrix.project }}.csv
+          name: codeql-results-${{ matrix.project }}
+          path: |
+            codeql-results/*.sarif
+            codeql-${{ matrix.project }}.csv
           retention-days: 30
