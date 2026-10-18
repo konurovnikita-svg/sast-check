@@ -27,7 +27,6 @@ jobs:
           - vulnerable-flask-app
           - webgoat
           - xvwa
-          - benchmark-java
 
     steps:
       - name: Checkout with submodules
@@ -40,7 +39,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript, python, ruby, java-kotlin
-          build-mode: none
+          build-mode: none # Анализ без сборки, чтобы не падало на чужих проектах
           paths: repos/${{ matrix.project }}
 
       - name: Perform CodeQL Analysis
@@ -50,18 +49,24 @@ jobs:
           output: codeql-results
 
       - name: Generate CSV Report
+        if: always()
         run: |
           SARIF_FILE=$(find codeql-results -name "*.sarif" -type f | head -n 1)
           echo "project,rule_id,severity,file,line,message" > codeql-${{ matrix.project }}.csv
+          
           if [ -f "$SARIF_FILE" ]; then
-            jq -r --arg project "${{ matrix.project }}" '.runs[].results[] | [$project, .ruleId, .level, (.locations[0].physicalLocation.artifactLocation.uri // "N/A"), (.locations[0].physicalLocation.region.startLine // 0), (.message.text | gsub("\n"; " "))] | @csv' "$SARIF_FILE" >> codeql-${{ matrix.project }}.csv
+            jq -r --arg project "${{ matrix.project }}" \
+              '.runs[].results[]? | [$project, .ruleId, .level, (.locations[0].physicalLocation.artifactLocation.uri // "N/A"), (.locations[0].physicalLocation.region.startLine // 0), (.message.text | gsub("\n"; " "))] | @csv' \
+              "$SARIF_FILE" >> codeql-${{ matrix.project }}.csv
           fi
 
       - name: Upload CodeQL SARIF & CSV
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: codeql-results-${{ matrix.project }}
           path: |
             codeql-results/*.sarif
             codeql-${{ matrix.project }}.csv
+          if-no-files-found: warn
           retention-days: 30
