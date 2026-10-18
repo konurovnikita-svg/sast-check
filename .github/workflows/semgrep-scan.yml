@@ -27,28 +27,31 @@ jobs:
           - vulnerable-flask-app
           - webgoat
           - xvwa
-          - benchmark-java  # Добавлен проект из вашего списка
+          - benchmark-java
 
     container:
-      image: semgrep/semgrep
+      image: semgrep/semgrep:1.127.1
 
     steps:
       - name: Checkout with submodules
         uses: actions/checkout@v4
         with:
-          submodules: recursive # Критически важно для выкачивания кода проектов
+          submodules: recursive
           fetch-depth: 0
 
       - name: Run Semgrep on ${{ matrix.project }}
-        # Указываем путь к конкретному проекту внутри папки repos
+        continue-on-error: true
         run: |
           semgrep scan --config auto \
             --sarif --output semgrep-${{ matrix.project }}.sarif \
             --json --output semgrep-${{ matrix.project }}.json \
-            repos/${{ matrix.project }}
-          # Генерация читаемого CSV отчета
-          echo "project,rule_id,severity,file,line,message" > semgrep-${{ matrix.project }}.csv
-          jq -r --arg project "${{ matrix.project }}" '.results[] | [$project, .check_id, .extra.severity, .path, .start.line, (.extra.message | gsub("\n"; " "))] | @csv' semgrep-${{ matrix.project }}.json >> semgrep-${{ matrix.project }}.csv
+            --no-suppress-errors \
+            repos/${{ matrix.project }} || true
+
+          if [ -f "semgrep-${{ matrix.project }}.json" ]; then
+            echo "project,rule_id,severity,file,line,message" > semgrep-${{ matrix.project }}.csv
+            jq -r --arg project "${{ matrix.project }}" '.results[]? | [$project, .check_id, .extra.severity, .path, .start.line, (.extra.message | gsub("\n"; " "))] | @csv' semgrep-${{ matrix.project }}.json >> semgrep-${{ matrix.project }}.csv
+          fi
 
       - name: Upload Semgrep SARIF & CSV
         uses: actions/upload-artifact@v4
@@ -57,6 +60,7 @@ jobs:
           path: |
             semgrep-${{ matrix.project }}.sarif
             semgrep-${{ matrix.project }}.csv
+          if-no-files-found: warn
           retention-days: 30
 
       - name: Upload SARIF to Security Tab
@@ -64,4 +68,4 @@ jobs:
         with:
           sarif_file: semgrep-${{ matrix.project }}.sarif
           category: semgrep-${{ matrix.project }}
-        if: always()
+        continue-on-error: true
