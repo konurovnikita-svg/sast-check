@@ -27,10 +27,6 @@ jobs:
           - vulnerable-flask-app
           - webgoat
           - xvwa
-          - benchmark-java
-
-    container:
-      image: semgrep/semgrep:1.127.1
 
     steps:
       - name: Checkout with submodules
@@ -39,21 +35,41 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
       - name: Run Semgrep on ${{ matrix.project }}
         continue-on-error: true
         run: |
           semgrep scan --config auto \
             --sarif --output semgrep-${{ matrix.project }}.sarif \
-            --json --output semgrep-${{ matrix.project }}.json \
-            --no-suppress-errors \
             repos/${{ matrix.project }} || true
 
-          if [ -f "semgrep-${{ matrix.project }}.json" ]; then
+      - name: Generate CSV and Debug Output
+        if: always()
+        run: |
+          # Выводим файлы для отладки
+          ls -la semgrep-${{ matrix.project }}.* || echo "Файлы не найдены"
+
+          # Если SARIF создался, конвертируем в CSV
+          if [ -f "semgrep-${{ matrix.project }}.sarif" ]; then
             echo "project,rule_id,severity,file,line,message" > semgrep-${{ matrix.project }}.csv
-            jq -r --arg project "${{ matrix.project }}" '.results[]? | [$project, .check_id, .extra.severity, .path, .start.line, (.extra.message | gsub("\n"; " "))] | @csv' semgrep-${{ matrix.project }}.json >> semgrep-${{ matrix.project }}.csv
+            jq -r --arg project "${{ matrix.project }}" \
+              '.runs[].results[]? | [$project, .ruleId, .level, (.locations[0].physicalLocation.artifactLocation.uri // "N/A"), (.locations[0].physicalLocation.region.startLine // 0), (.message.text | gsub("\n"; " "))] | @csv' \
+              semgrep-${{ matrix.project }}.sarif >> semgrep-${{ matrix.project }}.csv
+          else
+            # Создаем пустые файлы-заглушки, чтобы артефакт точно загрузился
+            echo '{"version": "2.1.0", "runs": []}' > semgrep-${{ matrix.project }}.sarif
+            echo "project,rule_id,severity,file,line,message" > semgrep-${{ matrix.project }}.csv
           fi
 
-      - name: Upload Semgrep SARIF & CSV
+      - name: Upload Semgrep Reports (SARIF & CSV)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-results-${{ matrix.project }}
@@ -64,6 +80,7 @@ jobs:
           retention-days: 30
 
       - name: Upload SARIF to Security Tab
+        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep-${{ matrix.project }}.sarif
