@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   codeql:
@@ -17,50 +16,56 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project:
-          - bwapp
-          - dvna
-          - dvwa
-          - juice-shop
-          - nodegoat
-          - railsgoat
-          - vulnerable-flask-app
-          - webgoat
-          - xvwa
+        include:
+          - project: dvna
+            language: javascript-typescript
+          - project: juice-shop
+            language: javascript-typescript
+          - project: nodegoat
+            language: javascript-typescript
+          - project: railsgoat
+            language: ruby
+          - project: vulnerable-flask-app
+            language: python
+          - project: webgoat
+            language: java-kotlin
 
     steps:
-      - name: Checkout with submodules
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
+
+      - name: Get only this project
+        run: git submodule update --init --depth 1 repos/${{ matrix.project }}
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: javascript-typescript, python, ruby, java-kotlin
+          languages: ${{ matrix.language }}
           build-mode: none
-          paths: repos/${{ matrix.project }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{ matrix.project }}"
           output: codeql-results
+          upload: never
 
       - name: Generate CSV Report
         if: always()
         run: |
-          SARIF_FILE=$(find codeql-results -name "*.sarif" -type f | head -n 1)
           echo "project,rule_id,severity,file,line,message" > codeql-${{ matrix.project }}.csv
-          
-          if [ -f "$SARIF_FILE" ]; then
-            # ИЗМЕНЕНИЕ: Берем level (error/warning/note) и приводим к верхнему регистру
-            jq -r --arg project "${{ matrix.project }}" \
-              '.runs[].results[]? | [$project, .ruleId, ((.level // .properties["security-severity"] // "N/A") | tostring | ascii_upcase), (.locations[0].physicalLocation.artifactLocation.uri // "N/A"), (.locations[0].physicalLocation.region.startLine // 0), (.message.text | gsub("\n"; " "))] | @csv' \
-              "$SARIF_FILE" >> codeql-${{ matrix.project }}.csv
-          fi
-      - name: Upload CodeQL SARIF & CSV
+          for f in codeql-results/*.sarif; do
+            [ -f "$f" ] || continue
+            jq -r --arg project "${{ matrix.project }}" '
+              ([.runs[].tool.driver.rules[]?, .runs[].tool.extensions[]?.rules[]?] | map({(.id): .}) | add // {}) as $rules
+              | .runs[].results[]?
+              | [$project, .ruleId,
+                 ((.level // $rules[.ruleId].defaultConfiguration.level // "N/A") | ascii_upcase),
+                 (.locations[0].physicalLocation.artifactLocation.uri // "N/A"),
+                 (.locations[0].physicalLocation.region.startLine // 0),
+                 (.message.text | gsub("\n"; " "))] | @csv' "$f" >> codeql-${{ matrix.project }}.csv
+          done
+
+      - name: Upload CSV and SARIF
         if: always()
         uses: actions/upload-artifact@v4
         with:
