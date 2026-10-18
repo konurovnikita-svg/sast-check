@@ -55,10 +55,24 @@ jobs:
           echo "project,rule_id,severity,file,line,message" > codeql-${{ matrix.project }}.csv
           
           if [ -f "$SARIF_FILE" ]; then
-            # ИЗМЕНЕНИЕ: Берем level (error/warning/note) и приводим к верхнему регистру
-            jq -r --arg project "${{ matrix.project }}" \
-              '.runs[].results[]? | [$project, .ruleId, ((.level // .properties["security-severity"] // "N/A") | tostring | ascii_upcase), (.locations[0].physicalLocation.artifactLocation.uri // "N/A"), (.locations[0].physicalLocation.region.startLine // 0), (.message.text | gsub("\n"; " "))] | @csv' \
-              "$SARIF_FILE" >> codeql-${{ matrix.project }}.csv
+            # Ищем level в самом результате, либо в настройках правила по умолчанию
+            jq -r --arg project "${{ matrix.project }}" '
+              .runs[] as $run |
+              $run.results[]? |
+              . as $result |
+              ($run.rules[]? | select(.id == $result.ruleId)) as $rule |
+              [
+                $project,
+                $result.ruleId,
+                (($result.level // $rule.defaultConfiguration.level // "N/A") | tostring | ascii_upcase),
+                ($result.locations[0].physicalLocation.artifactLocation.uri // "N/A"),
+                ($result.locations[0].physicalLocation.region.startLine // 0),
+                ($result.message.text // "" | gsub("\n"; " "))
+              ] | @csv
+            ' "$SARIF_FILE" >> codeql-${{ matrix.project }}.csv
+            
+            echo "--- Первые 5 строк отчета ---"
+            head -n 5 codeql-${{ matrix.project }}.csv
           fi
 
       - name: Upload CodeQL SARIF & CSV
