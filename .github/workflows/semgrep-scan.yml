@@ -23,7 +23,7 @@ jobs:
         run: pip install semgrep
 
       - name: Run Semgrep
-        run: semgrep scan --config auto --config p/owasp-top-ten --config p/security-audit --sarif --output semgrep.sarif repos/
+        run: semgrep scan --config auto --config p/owasp-top-ten --config p/security-audit --no-git-ignore --sarif --output semgrep.sarif repos/
 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
