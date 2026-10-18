@@ -53,17 +53,15 @@ jobs:
       - name: Generate CSV and Debug Output
         if: always()
         run: |
-          # Выводим файлы для отладки
           ls -la semgrep-${{ matrix.project }}.* || echo "Файлы не найдены"
 
-          # Если SARIF создался, конвертируем в CSV
           if [ -f "semgrep-${{ matrix.project }}.sarif" ]; then
             echo "project,rule_id,severity,file,line,message" > semgrep-${{ matrix.project }}.csv
+            # ИЗМЕНЕНИЕ: Берем severity из properties.severity, приводим к верхнему регистру
             jq -r --arg project "${{ matrix.project }}" \
-              '.runs[].results[]? | [$project, .ruleId, .level, (.locations[0].physicalLocation.artifactLocation.uri // "N/A"), (.locations[0].physicalLocation.region.startLine // 0), (.message.text | gsub("\n"; " "))] | @csv' \
+              '.runs[].results[]? | [$project, .ruleId, ((.properties.severity // .level // "N/A") | ascii_upcase), (.locations[0].physicalLocation.artifactLocation.uri // "N/A"), (.locations[0].physicalLocation.region.startLine // 0), (.message.text | gsub("\n"; " "))] | @csv' \
               semgrep-${{ matrix.project }}.sarif >> semgrep-${{ matrix.project }}.csv
           else
-            # Создаем пустые файлы-заглушки, чтобы артефакт точно загрузился
             echo '{"version": "2.1.0", "runs": []}' > semgrep-${{ matrix.project }}.sarif
             echo "project,rule_id,severity,file,line,message" > semgrep-${{ matrix.project }}.csv
           fi
