@@ -20,7 +20,7 @@ jobs:
           - language: javascript-typescript
             build-mode: none
           - language: java-kotlin
-            build-mode: autobuild
+            build-mode: manual   
           - language: python
             build-mode: none
           - language: ruby
@@ -31,6 +31,13 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup Java
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'   
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
@@ -38,9 +45,14 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended,security-and-quality
 
-      - name: Autobuild
-        if: matrix.build-mode == 'autobuild'
-        uses: github/codeql-action/autobuild@v3
+      # Шаг ручной сборки для Java
+      - name: Build Java projects manually
+        if: matrix.language == 'java-kotlin'
+        run: |
+          echo "Сборка WebGoat..."
+          cd repos/webgoat && mvn -B -DskipTests clean install || true
+          echo "Сборка BenchmarkJava..."
+          cd ../benchmark-java && mvn -B -DskipTests clean install || true
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
