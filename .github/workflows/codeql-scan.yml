@@ -51,6 +51,7 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended,security-and-quality
+          source-root: repos
 
       - name: Build Java projects manually
         if: matrix.language == 'java-kotlin'
