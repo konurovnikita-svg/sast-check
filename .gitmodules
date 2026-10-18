@@ -1,0 +1,30 @@
+[submodule "repos/juice-shop"]
+	path = repos/juice-shop
+	url = https://github.com/juice-shop/juice-shop.git
+[submodule "repos/webgoat"]
+	path = repos/webgoat
+	url = https://github.com/WebGoat/WebGoat.git
+[submodule "repos/nodegoat"]
+	path = repos/nodegoat
+	url = https://github.com/OWASP/NodeGoat.git
+[submodule "repos/railsgoat"]
+	path = repos/railsgoat
+	url = https://github.com/OWASP/railsgoat.git
+[submodule "repos/dvwa"]
+	path = repos/dvwa
+	url = https://github.com/digininja/DVWA.git
+[submodule "repos/vulnerable-flask-app"]
+	path = repos/vulnerable-flask-app
+	url = https://github.com/we45/Vulnerable-Flask-App.git
+[submodule "repos/benchmark-java"]
+	path = repos/benchmark-java
+	url = https://github.com/OWASP-Benchmark/BenchmarkJava.git
+[submodule "repos/dvna"]
+	path = repos/dvna
+	url = https://github.com/appsecco/dvna.git
+[submodule "repos/bwapp"]
+	path = repos/bwapp
+	url = https://github.com/raesene/bWAPP.git
+[submodule "repos/xvwa"]
+	path = repos/xvwa
+	url = https://github.com/s4n7h0/xvwa.git

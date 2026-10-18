@@ -1,0 +1,28 @@
+name: Semgrep SAST Scan
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep
+        # Сканируем папку repos/ со всеми 10 проектами
+        run: semgrep scan --config auto --config p/owasp-top-ten --config p/security-audit --sarif --output semgrep.sarif repos/
+
+      - name: Upload Semgrep Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: semgrep.sarif
