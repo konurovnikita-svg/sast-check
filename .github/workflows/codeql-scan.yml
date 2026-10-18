@@ -35,6 +35,9 @@ jobs:
       - name: Force submodule update
         run: git submodule update --init --recursive
 
+      - name: Remove benchmark folder
+        run: rm -rf repos/benchmark-java
+
       - name: Setup Java
         if: matrix.language == 'java-kotlin'
         uses: actions/setup-java@v4
@@ -54,10 +57,8 @@ jobs:
         run: |
           for dir in repos/*/; do
             if [ -f "$dir/pom.xml" ]; then
-              echo "Building Maven project in $dir"
               (cd "$dir" && mvn -B -DskipTests clean install || true)
             elif [ -f "$dir/build.gradle" ] || [ -f "$dir/build.gradle.kts" ]; then
-              echo "Building Gradle project in $dir"
               (cd "$dir" && chmod +x gradlew && ./gradlew build -x test || true)
             fi
           done
@@ -66,3 +67,10 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
+          output: codeql-results
+
+      - name: Upload CodeQL Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-reports-${{ matrix.language }}
+          path: codeql-results
