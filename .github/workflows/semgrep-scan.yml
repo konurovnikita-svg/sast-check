@@ -26,52 +26,39 @@ jobs:
       - name: Install Semgrep
         run: pip install semgrep
 
-      - name: Run Semgrep
-        # Генерируем только JSON и SARIF, так как флага --csv не существует
+      - name: Run Semgrep (SARIF for Security tab)
         run: |
           semgrep scan --config auto --config p/owasp-top-ten --config p/security-audit --no-git-ignore \
           --exclude=repos/benchmark-java/ \
           --sarif --output semgrep.sarif \
-          --json --output semgrep-results.json \
-          repos/
+          repos/ || true
 
-      # Шаг для конвертации JSON в CSV
+      - name: Run Semgrep (JSON for CSV report)
+        run: |
+          semgrep scan --config auto --config p/owasp-top-ten --config p/security-audit --no-git-ignore \
+          --exclude=repos/benchmark-java/ \
+          --json --output semgrep-results.json \
+          repos/ || true
+
       - name: Convert JSON to CSV
         run: |
           python3 - <<'PY'
-          import json
-          import csv
-          import os
-          
-          # Загружаем результаты из JSON
-          with open('semgrep-results.json', 'r', encoding='utf-8') as f:
-              data = json.load(f)
-          
-          results = data.get('results', [])
-          
-          # Определяем поля для CSV
-          fieldnames = ['project', 'path', 'rule_id', 'message', 'severity', 'start_line', 'end_line']
-          
-          with open('semgrep-results.csv', 'w', newline='', encoding='utf-8') as f:
-              writer = csv.DictWriter(f, fieldnames=fieldnames)
-              writer.writeheader()
-              
-              for r in results:
-                  path = r.get('path', '')
-                  # Извлекаем название проекта из пути (например, repos/juice-shop/... -> juice-shop)
-                  parts = path.split(os.sep)
-                  project = parts[1] if len(parts) > 1 else 'unknown'
-                  
-                  writer.writerow({
-                      'project': project,
-                      'path': path,
-                      'rule_id': r.get('check_id', ''),
-                      'message': r.get('extra', {}).get('message', ''),
-                      'severity': r.get('extra', {}).get('severity', ''),
-                      'start_line': r.get('start', {}).get('line', ''),
-                      'end_line': r.get('end', {}).get('line', '')
-                  })
-          print(f"CSV файл создан. Найдено {len(results)} уязвимостей.")
+          import json, csv, os
+          try:
+              with open('semgrep-results.json', 'r', encoding='utf-8') as f:
+                  data = json.load(f)
+              results = data.get('results', [])
+              with open('semgrep-results.csv', 'w', newline='', encoding='utf-8') as f:
+                  writer = csv.writer(f)
+                  writer.writerow(['Проект', 'Путь к файлу', 'Правило (Ошибка)', 'Описание', 'Критичность', 'Строка'])
+                  for r in results:
+                      path = r.get('path', '')
+                      parts = path.split(os.sep)
+                      project = parts[1] if len(parts) > 1 else 'unknown'
+                      msg = r.get('extra', {}).get('message', '').replace('\n', ' ')
+                      writer.writerow([project, path, r.get('check_id', ''), msg, r.get('extra', {}).get('severity', ''), r.get('start', {}).get('line', '')])
+          except Exception as e:
+              print(f"Ошибка конвертации: {e}")
           PY
 
       - name: Upload SARIF to GitHub Security
@@ -80,7 +67,7 @@ jobs:
           sarif_file: semgrep.sarif
           category: semgrep
 
-      - name: Upload Reports as Artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-reports
