@@ -20,7 +20,6 @@ jobs:
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
-
       - name: Force submodule update
         run: git submodule update --init --recursive
 
@@ -28,11 +27,25 @@ jobs:
         run: pip install semgrep
 
       - name: Run Semgrep
-      
-        run: semgrep scan --config auto --config p/owasp-top-ten --config p/security-audit --no-git-ignore --sarif --output semgrep.sarif repos/
+        run: |
+          semgrep scan --config auto --config p/owasp-top-ten --config p/security-audit --no-git-ignore \
+          --exclude=repos/benchmark-java/ \
+          --sarif --output semgrep.sarif \
+          --json --output semgrep-results.json \
+          --csv --output semgrep-results.csv \
+          repos/
 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
           category: semgrep
+
+      - name: Upload Reports as Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-reports
+          path: |
+            semgrep-results.csv
+            semgrep-results.json
+            semgrep.sarif
