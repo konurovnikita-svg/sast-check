@@ -33,47 +33,28 @@ jobs:
       - name: Checkout with submodules
         uses: actions/checkout@v4
         with:
-          submodules: recursive # Выкачиваем код проектов
+          submodules: recursive
           fetch-depth: 0
-
-      - name: Create Dynamic CodeQL Config
-        # Создаем конфиг на лету, чтобы ограничить анализ только папкой текущего проекта
-        run: |
-          mkdir -p .github/codeql
-          cat <<EOF > .github/codeql/codeql-config.yml
-          name: "CodeQL config for ${{ matrix.project }}"
-          paths:
-            - repos/${{ matrix.project }}
-          paths-ignore:
-            - '**/test/**'
-            - '**/tests/**'
-            - '**/node_modules/**'
-          EOF
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript, python, ruby, java-kotlin
-          config-file: ./.github/codeql/codeql-config.yml # Подключаем сгенерированный конфиг
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+          build-mode: none
+          paths: repos/${{ matrix.project }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.project }}"
-          output: codeql-results # Сохраняем SARIF в известную папку
+          output: codeql-results
 
       - name: Generate CSV Report
-        # Парсим SARIF в читаемый CSV с указанием имени проекта
         run: |
           SARIF_FILE=$(find codeql-results -name "*.sarif" -type f | head -n 1)
           echo "project,rule_id,severity,file,line,message" > codeql-${{ matrix.project }}.csv
           if [ -f "$SARIF_FILE" ]; then
             jq -r --arg project "${{ matrix.project }}" '.runs[].results[] | [$project, .ruleId, .level, (.locations[0].physicalLocation.artifactLocation.uri // "N/A"), (.locations[0].physicalLocation.region.startLine // 0), (.message.text | gsub("\n"; " "))] | @csv' "$SARIF_FILE" >> codeql-${{ matrix.project }}.csv
-          else
-            echo "SARIF file not found, skipping CSV generation."
           fi
 
       - name: Upload CodeQL SARIF & CSV
