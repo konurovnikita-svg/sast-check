@@ -57,10 +57,24 @@ jobs:
 
           if [ -f "semgrep-${{ matrix.project }}.sarif" ]; then
             echo "project,rule_id,severity,file,line,message" > semgrep-${{ matrix.project }}.csv
-            # ИЗМЕНЕНИЕ: Берем severity из properties.severity, приводим к верхнему регистру
-            jq -r --arg project "${{ matrix.project }}" \
-              '.runs[].results[]? | [$project, .ruleId, ((.properties.severity // .level // "N/A") | ascii_upcase), (.locations[0].physicalLocation.artifactLocation.uri // "N/A"), (.locations[0].physicalLocation.region.startLine // 0), (.message.text | gsub("\n"; " "))] | @csv' \
-              semgrep-${{ matrix.project }}.sarif >> semgrep-${{ matrix.project }}.csv
+            # Ищем severity в properties самого результата, либо в определении правила (rules)
+            jq -r --arg project "${{ matrix.project }}" '
+              .runs[] as $run |
+              $run.results[]? |
+              . as $result |
+              ($run.rules[]? | select(.id == $result.ruleId) | .properties.severity) as $rule_sev |
+              [
+                $project,
+                $result.ruleId,
+                (($result.properties.severity // $rule_sev // $result.level // "N/A") | tostring | ascii_upcase),
+                ($result.locations[0].physicalLocation.artifactLocation.uri // "N/A"),
+                ($result.locations[0].physicalLocation.region.startLine // 0),
+                ($result.message.text // "" | gsub("\n"; " "))
+              ] | @csv
+            ' semgrep-${{ matrix.project }}.sarif >> semgrep-${{ matrix.project }}.csv
+            
+            echo "--- Первые 5 строк отчета ---"
+            head -n 5 semgrep-${{ matrix.project }}.csv
           else
             echo '{"version": "2.1.0", "runs": []}' > semgrep-${{ matrix.project }}.sarif
             echo "project,rule_id,severity,file,line,message" > semgrep-${{ matrix.project }}.csv
