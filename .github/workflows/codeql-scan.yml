@@ -20,7 +20,7 @@ jobs:
           - language: javascript-typescript
             build-mode: none
           - language: java-kotlin
-            build-mode: autobuild
+            build-mode: manual
           - language: python
             build-mode: none
           - language: ruby
@@ -30,6 +30,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Force submodule update
+        run: git submodule update --init --recursive
+
+      - name: Setup Java
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -38,9 +49,18 @@ jobs:
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended,security-and-quality
 
-      - name: Autobuild
-        if: matrix.build-mode == 'autobuild'
-        uses: github/codeql-action/autobuild@v3
+      - name: Build Java projects manually
+        if: matrix.language == 'java-kotlin'
+        run: |
+          for dir in repos/*/; do
+            if [ -f "$dir/pom.xml" ]; then
+              echo "Building Maven project in $dir"
+              (cd "$dir" && mvn -B -DskipTests clean install || true)
+            elif [ -f "$dir/build.gradle" ] || [ -f "$dir/build.gradle.kts" ]; then
+              echo "Building Gradle project in $dir"
+              (cd "$dir" && chmod +x gradlew && ./gradlew build -x test || true)
+            fi
+          done
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

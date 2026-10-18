@@ -8,21 +8,31 @@ on:
 jobs:
   semgrep:
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: Force submodule update
+        run: git submodule update --init --recursive
 
       - name: Install Semgrep
         run: pip install semgrep
 
       - name: Run Semgrep
-        # Сканируем папку repos/ со всеми 10 проектами
-        run: semgrep scan --config auto --config p/owasp-top-ten --config p/security-audit --sarif --output semgrep.sarif repos/
+      
+        run: semgrep scan --config auto --config p/owasp-top-ten --config p/security-audit --no-git-ignore --sarif --output semgrep.sarif repos/
 
-      - name: Upload Semgrep Results
-        uses: actions/upload-artifact@v4
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          name: semgrep-results
-          path: semgrep.sarif
+          sarif_file: semgrep.sarif
+          category: semgrep
