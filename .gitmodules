@@ -16,9 +16,6 @@
 [submodule "repos/vulnerable-flask-app"]
 	path = repos/vulnerable-flask-app
 	url = https://github.com/we45/Vulnerable-Flask-App.git
-[submodule "repos/benchmark-java"]
-	path = repos/benchmark-java
-	url = https://github.com/OWASP-Benchmark/BenchmarkJava.git
 [submodule "repos/dvna"]
 	path = repos/dvna
 	url = https://github.com/appsecco/dvna.git
