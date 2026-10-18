@@ -1,77 +1,68 @@
-name: CodeQL SAST Scan
+name: CodeQL SAST Matrix Scan
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch: {}
+    branches: [ "main", "master" ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
-  analyze:
-    name: Analyze (${{ matrix.language }})
+  codeql:
+    name: CodeQL Scan - ${{ matrix.project }}
     runs-on: ubuntu-latest
-    permissions:
-      security-events: write
-      contents: read
-      actions: read
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - language: javascript-typescript
-            build-mode: none
-          - language: java-kotlin
-            build-mode: manual
-          - language: python
-            build-mode: none
-          - language: ruby
-            build-mode: none
+        project:
+          - bwapp
+          - dvna
+          - dvwa
+          - juice-shop
+          - nodegoat
+          - railsgoat
+          - vulnerable-flask-app
+          - webgoat
+          - xvwa
+
     steps:
-      - name: Checkout repository
+      - name: Checkout ${{ matrix.project }}
         uses: actions/checkout@v4
         with:
-          submodules: recursive
-          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: konuronikita-svg/sast-check
+          path: .
+          fetch-depth: 1
 
-      - name: Force submodule update
-        run: git submodule update --init --recursive
-
-      - name: Remove benchmark folder
-        run: rm -rf repos/benchmark-java
-
-      - name: Setup Java
-        if: matrix.language == 'java-kotlin'
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Initialize CodeQL
+      - name: Initialize CodeQL for ${{ matrix.project }}
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-          queries: security-extended,security-and-quality
-          source-root: repos
+          languages: javascript-typescript, python, ruby, java-kotlin
+          
 
-      - name: Build Java projects manually
-        if: matrix.language == 'java-kotlin'
-        run: |
-          for dir in repos/*/; do
-            if [ -f "$dir/pom.xml" ]; then
-              (cd "$dir" && mvn -B -DskipTests clean install || true)
-            elif [ -f "$dir/build.gradle" ] || [ -f "$dir/build.gradle.kts" ]; then
-              (cd "$dir" && chmod +x gradlew && ./gradlew build -x test || true)
-            fi
-          done
+      - name: Autobuild ${{ matrix.project }}
+        uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{ matrix.language }}"
-          output: codeql-results
+          category: "/language:${{ matrix.project }}"
 
-      - name: Upload CodeQL Reports
+      - name: Generate CSV Report from SARIF
+        run: |
+          
+      - name: Upload CodeQL SARIF Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: codeql-reports-${{ matrix.language }}
-          path: codeql-results
+          name: codeql-sarif-${{ matrix.project }}
+          path: ${{ github.workspace }}/**/*.sarif
+          retention-days: 30
+
+      - name: Upload CodeQL CSV Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-csv-${{ matrix.project }}
+          path: codeql-${{ matrix.project }}.csv
+          retention-days: 30
