@@ -1,47 +1,58 @@
-name: Semgrep Multi-Repo Scan
+name: Semgrep SAST Scan
 
 on:
-  workflow_dispatch: 
-  schedule:
-    - cron: '0 3 * * 1' # Опционально: еженедельный запуск
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
-  semgrep-scan:
-    name: Scan - ${{ matrix.project.name }}
+  semgrep:
+    name: Semgrep - ${{ matrix.project.name }}
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false # Продолжать сканирование остальных проектов, даже если один упал
+      fail-fast: false
       matrix:
         project:
-          - name: "juice-shop"
-            repo: "juice-shop/juice-shop"
-          - name: "dvwa"
-            repo: "digininja/DVWA"
-          - name: "webgoat"
-            repo: "WebGoat/WebGoat"
-          - name: "nodegoat"
-            repo: "OWASP/NodeGoat"
-          - name: "pygoat"
-            repo: "adeyosemanputr/pygoat"
-          - name: "vulnshop"
-            repo: "appsec-vulnerable/vulnshop" # Уточнить точный upstream-путь репозитория
-          - name: "iwa-java"
-            repo: "hdiv/iwa-java"               # Уточнить точный upstream-путь репозитория
-          - name: "vulnerable-java-app"
-            repo: "snyk-labs/java-goof"
-          - name: "vulnbookstore"
-            repo: "vulnbookstore/vulnbookstore" # Уточнить точный upstream-путь репозитория
-          - name: "vulnerable-graphql"
-            repo: "dolevf/Damn-Vulnerable-GraphQL-Application"
+          - name: juice-shop
+            repo: juice-shop/juice-shop
+          - name: dvwa
+            repo: digininja/DVWA
+          - name: webgoat
+            repo: WebGoat/WebGoat
+          - name: nodegoat
+            repo: OWASP/NodeGoat
+          - name: pygoat
+            repo: adeyosemanputra/pygoat
+          - name: vulnshop
+            repo: nr-yolo/Vulnshop
+          - name: iwa-java
+            repo: fortify/IWA-Java
+          - name: vulnerable-java-app
+            repo: siddharthoak/vulnerable-java-app
+          - name: vulnbookstore
+            repo: tobiasbruss/vulnerable-repo
+          - name: vulnerable-graphql
+            repo: dolevf/Damn-Vulnerable-GraphQL-Application
+          # Дополнительные проекты из ваших скриншотов
+          - name: bwapp
+            repo: lelouch-repo/buggy-app
+          - name: railsgoat
+            repo: OWASP/railsgoat
+          - name: vulnerable-flask-app
+            repo: videvelopers/Vulnerable-Flask-App
+          - name: xvwa
+            repo: s4n7h0/xvwa
 
     steps:
-      - name: Checkout Target Repository
+      - name: Checkout ${{ matrix.project.repo }}
         uses: actions/checkout@v4
         with:
           repository: ${{ matrix.project.repo }}
           path: target-repo
 
-      - name: Run Semgrep with JSON Export
+      - name: Run Semgrep (JSON)
         run: |
           docker run --rm \
             -v "${{ github.workspace }}/target-repo:/src" \
@@ -53,12 +64,10 @@ jobs:
             --json \
             --json-output=/${{ matrix.project.name }}-semgrep.json \
             . || true
-          # Перемещаем отчет в корень рабочей директории для удобства выгрузки
-          docker run --rm -v "${{ github.workspace }}/target-repo:/src" alpine mv /src/${{ matrix.project.name }}-semgrep.json /src/ 2>/dev/null || true
 
-      - name: Upload JSON Artifact
+      - name: Upload JSON report
         uses: actions/upload-artifact@v4
         with:
-          name: semgrep-result-${{ matrix.project.name }}
+          name: semgrep-json-${{ matrix.project.name }}
           path: target-repo/${{ matrix.project.name }}-semgrep.json
           retention-days: 30
