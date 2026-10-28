@@ -20,100 +20,73 @@ jobs:
           - name: juice-shop
             repo: juice-shop/juice-shop
             language: javascript-typescript
-            build-mode: none
           - name: webgoat
             repo: WebGoat/WebGoat
             language: java-kotlin
-            build-mode: manual   # <-- ИЗМЕНЕНО: autobuild не поддерживается в Actions
           - name: nodegoat
             repo: OWASP/NodeGoat
             language: javascript-typescript
-            build-mode: none
           - name: pygoat
             repo: adeyosemanputra/pygoat
             language: python
-            build-mode: none
           - name: vulnshop
             repo: nr-yolo/Vulnshop
-            language: javascript
-            build-mode: none
+            language: javascript-typescript
           - name: iwa-java
             repo: fortify/IWA-Java
             language: java-kotlin
-            build-mode: manual   # <-- ИЗМЕНЕНО
           - name: vulnerable-java-app
             repo: siddharthoak/vulnerable-java-app
             language: java-kotlin
-            build-mode: manual   # <-- ИЗМЕНЕНО
           - name: vulnbookstore
             repo: tobiasbruss/vulnerable-repo
             language: python
-            build-mode: none
           - name: vulnerable-graphql
             repo: dolevf/Damn-Vulnerable-GraphQL-Application
             language: javascript-typescript
-            build-mode: none
           - name: railsgoat
             repo: OWASP/railsgoat
             language: ruby
-            build-mode: none
 
     steps:
       - name: Checkout ${{ matrix.project.repo }}
         uses: actions/checkout@v4
         with:
           repository: ${{ matrix.project.repo }}
-          fetch-depth: 1
-
-      # --- НОВЫЙ ШАГ: Установка JDK для ручной сборки Java ---
-      - name: Setup Java JDK
-        if: matrix.project.build-mode == 'manual' && matrix.project.language == 'java-kotlin'
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17' # Рекомендуется использовать LTS-версию, например 17 или 21
+          path: target-repo
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.project.build-mode }}
+          source-root: target-repo
 
-      # --- НОВЫЙ ШАГ: Ручная сборка для Java проектов ---
-      # CodeQL в режиме manual требует, чтобы сборка была выполнена до анализа.
-      - name: Build Java Project
-        if: matrix.project.build-mode == 'manual' && matrix.project.language == 'java-kotlin'
-        run: |
-          if [ -f "mvnw" ]; then
-            chmod +x mvnw
-            ./mvnw clean package -DskipTests
-          elif [ -f "gradlew" ]; then
-            chmod +x gradlew
-            ./gradlew build -x test
-          else
-            echo "No build tool wrapper found. Please add explicit build commands for this project."
-            exit 1
-          fi
+      # Автосборка для компилируемых языков
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4
+        if: matrix.language == 'java-kotlin' || matrix.language == 'ruby'
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
-        continue-on-error: true
+        continue-on-error: true # <-- ВАЖНО: не роняем пайплайн, если анализ упал
         with:
           category: "/language:${{ matrix.language }}/project:${{ matrix.project.name }}"
           output: codeql-results-${{ matrix.project.name }}
           upload: false
 
       - name: Prepare JSON Reports
-        if: always()
+        if: always() # <-- ВАЖНО: выполняем, даже если предыдущий шаг упал
         run: |
           mkdir -p final-json-reports
           find codeql-results-${{ matrix.project.name }} -name "*.sarif" -exec cp {} final-json-reports/${{ matrix.project.name }}-codeql.json \; || true
+          
+          # Если файлов не нашлось (анализ упал), создаем пустой валидный JSON
           if [ ! -f final-json-reports/${{ matrix.project.name }}-codeql.json ]; then
             echo '{"runs": [], "version": "2.1.0"}' > final-json-reports/${{ matrix.project.name }}-codeql.json
           fi
 
       - name: Upload JSON reports
-        if: always()
+        if: always() # <-- ВАЖНО: загружаем артефакты всегда
         uses: actions/upload-artifact@v4
         with:
           name: codeql-json-${{ matrix.project.name }}
