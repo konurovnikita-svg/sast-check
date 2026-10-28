@@ -24,7 +24,7 @@ jobs:
           - name: webgoat
             repo: WebGoat/WebGoat
             language: java-kotlin
-            build-mode: autobuild
+            build-mode: manual   # <-- ИЗМЕНЕНО: autobuild не поддерживается в Actions
           - name: nodegoat
             repo: OWASP/NodeGoat
             language: javascript-typescript
@@ -40,11 +40,11 @@ jobs:
           - name: iwa-java
             repo: fortify/IWA-Java
             language: java-kotlin
-            build-mode: autobuild
+            build-mode: manual   # <-- ИЗМЕНЕНО
           - name: vulnerable-java-app
             repo: siddharthoak/vulnerable-java-app
             language: java-kotlin
-            build-mode: autobuild
+            build-mode: manual   # <-- ИЗМЕНЕНО
           - name: vulnbookstore
             repo: tobiasbruss/vulnerable-repo
             language: python
@@ -65,12 +65,35 @@ jobs:
           repository: ${{ matrix.project.repo }}
           fetch-depth: 1
 
+      # --- НОВЫЙ ШАГ: Установка JDK для ручной сборки Java ---
+      - name: Setup Java JDK
+        if: matrix.project.build-mode == 'manual' && matrix.project.language == 'java-kotlin'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17' # Рекомендуется использовать LTS-версию, например 17 или 21
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.project.build-mode }}
 
+      # --- НОВЫЙ ШАГ: Ручная сборка для Java проектов ---
+      # CodeQL в режиме manual требует, чтобы сборка была выполнена до анализа.
+      - name: Build Java Project
+        if: matrix.project.build-mode == 'manual' && matrix.project.language == 'java-kotlin'
+        run: |
+          if [ -f "mvnw" ]; then
+            chmod +x mvnw
+            ./mvnw clean package -DskipTests
+          elif [ -f "gradlew" ]; then
+            chmod +x gradlew
+            ./gradlew build -x test
+          else
+            echo "No build tool wrapper found. Please add explicit build commands for this project."
+            exit 1
+          fi
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
