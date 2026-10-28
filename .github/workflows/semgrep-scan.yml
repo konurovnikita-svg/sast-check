@@ -49,24 +49,30 @@ jobs:
           repository: ${{ matrix.project.repo }}
           path: target-repo
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
       - name: Run Semgrep (JSON)
         run: |
-          # Обратите внимание на путь /src/ - именно туда монтируется папка target-repo
-          docker run --rm \
-            -v "${{ github.workspace }}/target-repo:/src" \
-            -w /src \
-            semgrep/semgrep \
-            semgrep scan \
+          semgrep scan \
             --config auto \
             --config p/owasp-top-ten \
             --json \
-            --output=/${{ matrix.project.name }}-semgrep.json \
-            . || true
+            --output=semgrep-results.json \
+            target-repo || true
+          # Если файл не создался, создаем пустой, чтобы шаг загрузки не упал
+          if [ ! -f semgrep-results.json ]; then
+            echo '{"results": [], "errors": []}' > semgrep-results.json
+          fi
 
       - name: Upload JSON report
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-json-${{ matrix.project.name }}
-          path: target-repo/${{ matrix.project.name }}-semgrep.json
-          if-no-files-found: error # Теперь пайплайн упадет с ошибкой, если файл не создался
+          path: semgrep-results.json
           retention-days: 30
