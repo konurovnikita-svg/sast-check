@@ -1,106 +1,84 @@
-name: "CodeQL Multi-Repo Analysis"
+```yaml
+name: CodeQL External Repositories
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
-    paths:
-      - '.github/workflows/codeql-scan.yml'
   schedule:
-    - cron: '0 0 * * 1'
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
 
 jobs:
   analyze:
-    name: CodeQL - ${{ matrix.repo_name }}
+    name: CodeQL - ${{ matrix.name }}
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
         include:
-          - repo: 'juice-shop/juice-shop'
-            repo_name: 'juice-shop'
-            language: 'javascript'
+          - name: OWASP Juice Shop
+            repository: juice-shop/juice-shop
+            language: javascript-typescript
 
-          - repo: 'digininja/DVWA'
-            repo_name: 'dvwa'
-            language: 'php'
+          - name: DVWA
+            repository: digininja/DVWA
+            language: php
 
-          - repo: 'WebGoat/WebGoat'
-            repo_name: 'webgoat'
-            language: 'java'
+          - name: OWASP WebGoat
+            repository: WebGoat/WebGoat
+            language: java-kotlin
 
-          - repo: 'OWASP/NodeGoat'
-            repo_name: 'nodegoat'
-            language: 'javascript'
+          - name: OWASP NodeGoat
+            repository: OWASP/NodeGoat
+            language: javascript-typescript
 
-          - repo: 'OWASP/PyGoat'
-            repo_name: 'pygoat'
-            language: 'python'
+          - name: PyGoat
+            repository: pygoat/pygoat
+            language: python
 
-          - repo: 'snoopysecurity/vulnshop'
-            repo_name: 'vulnshop'
-            language: 'python'
+          # Verify the repository owners and names below.
+          - name: VulnShop
+            repository: REPLACE_WITH_OWNER/VulnShop
+            language: javascript-typescript
 
-          - repo: 'OWASP/IWA-Java'
-            repo_name: 'iwa-java'
-            language: 'java'
+          - name: IWA-Java
+            repository: REPLACE_WITH_OWNER/IWA-Java
+            language: java-kotlin
 
-          - repo: 'OWASP/vulnerable-java-app'
-            repo_name: 'vulnerable-java-app'
-            language: 'java'
+          - name: vulnerable-java-app
+            repository: REPLACE_WITH_OWNER/vulnerable-java-app
+            language: java-kotlin
 
-          - repo: 'OWASP/VulnBookStore'
-            repo_name: 'vulnbookstore'
-            language: 'java'
+          - name: VulnBookStore
+            repository: REPLACE_WITH_OWNER/VulnBookStore
+            language: java-kotlin
 
-          - repo: 'dolevf/Damn-Vulnerable-GraphQL-Application'
-            repo_name: 'vulnerable-graphql'
-            language: 'javascript'
+          - name: Damn Vulnerable GraphQL Application
+            repository: dolevf/Damn-Vulnerable-GraphQL-Application
+            language: python
 
     steps:
-      - name: Checkout workflow repo
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Clone target repository
-        run: |
-          git clone --depth 1 https://github.com/${{ matrix.repo }} target-repo
-          echo "Cloned ${{ matrix.repo }}"
-          ls -la target-repo/
+        with:
+          repository: ${{ matrix.repository }}
+          path: source
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          source-root: target-repo
+          source-root: source
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
-        continue-on-error: true
 
-      - name: Perform CodeQL Analysis
+      - name: Analyze
         uses: github/codeql-action/analyze@v3
         with:
-          output: sarif-results/${{ matrix.repo_name }}
-          category: ${{ matrix.language }}
-
-      - name: Convert SARIF to JSON
-        if: always()
-        run: |
-          sudo apt-get install -y jq
-          mkdir -p results
-          for file in sarif-results/${{ matrix.repo_name }}/*.sarif; do
-            if [ -f "$file" ]; then
-              filename=$(basename "$file" .sarif)
-              cat "$file" | jq '.' > "results/${{ matrix.repo_name }}-${filename}.json"
-              echo "Created results/${{ matrix.repo_name }}-${filename}.json"
-            fi
-          done
-          ls -la results/
-
-      - name: Upload JSON artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: codeql-${{ matrix.repo_name }}
-          path: results/
-          retention-days: 30
+          category: /language:${{ matrix.language }}-repository:${{ matrix.name }}
+```
