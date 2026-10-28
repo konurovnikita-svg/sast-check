@@ -3,7 +3,7 @@ name: "CodeQL Multi-Repo Analysis"
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 1'  # Запуск каждый понедельник
+    - cron: '0 0 * * 1'
 
 jobs:
   analyze:
@@ -54,13 +54,14 @@ jobs:
             language: 'javascript'
 
     steps:
-    - name: Checkout repository
+    - name: Checkout workflow repo
       uses: actions/checkout@v4
 
     - name: Clone target repository
       run: |
-        git clone https://github.com/${{ matrix.repo }} target-repo
-        cd target-repo
+        git clone --depth 1 https://github.com/${{ matrix.repo }} target-repo
+        echo "Cloned ${{ matrix.repo }}"
+        ls -la target-repo/
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
@@ -68,32 +69,34 @@ jobs:
         languages: ${{ matrix.language }}
         source-root: target-repo
 
-    - name: Autobuild
+    - name: Autobuild (continue on error)
       uses: github/codeql-action/autobuild@v3
       continue-on-error: true
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
-        output: sarif-results
+        output: sarif-results/${{ matrix.repo_name }}
         category: ${{ matrix.language }}
 
     - name: Convert SARIF to JSON
+      if: always()
       run: |
         sudo apt-get install -y jq
-        for file in sarif-results/*.sarif; do
+        mkdir -p results
+        for file in sarif-results/${{ matrix.repo_name }}/*.sarif; do
           if [ -f "$file" ]; then
             filename=$(basename "$file" .sarif)
-            cat "$file" | jq '.' > "${{ matrix.repo_name }}-${filename}.json"
-            echo "Created ${{ matrix.repo_name }}-${filename}.json"
+            cat "$file" | jq '.' > "results/${{ matrix.repo_name }}-${filename}.json"
+            echo "Created results/${{ matrix.repo_name }}-${filename}.json"
           fi
         done
+        ls -la results/
 
     - name: Upload JSON artifacts
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: codeql-${{ matrix.repo_name }}
-        path: |
-          *.json
-          *.sarif
+        path: results/
         retention-days: 30
