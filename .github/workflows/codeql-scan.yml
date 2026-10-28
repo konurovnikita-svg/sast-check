@@ -1,83 +1,104 @@
 
-name: CodeQL External Repositories
+name: CodeQL External Repository Scan
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 3 * * 1"
 
 permissions:
   contents: read
-  security-events: write
-  actions: read
 
 jobs:
-  analyze:
-    name: CodeQL - ${{ matrix.name }}
+  codeql-scan:
+    name: Scan ${{ matrix.name }}
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: OWASP Juice Shop
-            repository: juice-shop/juice-shop
+          - name: juice-shop
+            repo: https://github.com/juice-shop/juice-shop.git
             language: javascript-typescript
+            build_mode: none
 
-          - name: DVWA
-            repository: digininja/DVWA
-            language: php
-
-          - name: OWASP WebGoat
-            repository: WebGoat/WebGoat
-            language: java-kotlin
-
-          - name: OWASP NodeGoat
-            repository: OWASP/NodeGoat
-            language: javascript-typescript
-
-          - name: PyGoat
-            repository: pygoat/pygoat
+          - name: dvwa
+            repo: https://github.com/digininja/DVWA.git
             language: python
+            build_mode: none
 
-          # Verify the repository owners and names below.
-          - name: VulnShop
-            repository: REPLACE_WITH_OWNER/VulnShop
-            language: javascript-typescript
-
-          - name: IWA-Java
-            repository: REPLACE_WITH_OWNER/IWA-Java
+          - name: webgoat
+            repo: https://github.com/WebGoat/WebGoat.git
             language: java-kotlin
+            build_mode: autobuild
+
+          - name: nodegoat
+            repo: https://github.com/OWASP/NodeGoat.git
+            language: javascript-typescript
+            build_mode: none
+
+          - name: pygoat
+            repo: https://github.com/pygoat/pygoat.git
+            language: python
+            build_mode: none
+
+          - name: vulnshop
+            repo: REPLACE_WITH_VULNSHOP_URL
+            language: javascript-typescript
+            build_mode: none
+
+          - name: iwa-java
+            repo: REPLACE_WITH_IWA_JAVA_URL
+            language: java-kotlin
+            build_mode: autobuild
 
           - name: vulnerable-java-app
-            repository: REPLACE_WITH_OWNER/vulnerable-java-app
+            repo: REPLACE_WITH_VULNERABLE_JAVA_APP_URL
             language: java-kotlin
+            build_mode: autobuild
 
-          - name: VulnBookStore
-            repository: REPLACE_WITH_OWNER/VulnBookStore
+          - name: vulnbookstore
+            repo: REPLACE_WITH_VULNBOOKSTORE_URL
             language: java-kotlin
+            build_mode: autobuild
 
-          - name: Damn Vulnerable GraphQL Application
-            repository: dolevf/Damn-Vulnerable-GraphQL-Application
+          - name: vulnerable-graphql
+            repo: https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application.git
             language: python
+            build_mode: none
 
     steps:
-      - name: Checkout repository
+      - name: Checkout workflow repository
         uses: actions/checkout@v4
-        with:
-          repository: ${{ matrix.repository }}
-          path: source
+
+      - name: Clone target repository
+        env:
+          REPOSITORY_URL: ${{ matrix.repo }}
+        run: |
+          git clone --depth 1 "$REPOSITORY_URL" source
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           source-root: source
+          build-mode: ${{ matrix.build_mode }}
 
       - name: Autobuild
+        if: matrix.build_mode == 'autobuild'
         uses: github/codeql-action/autobuild@v3
 
-      - name: Analyze
+      - name: Analyze with CodeQL
         uses: github/codeql-action/analyze@v3
         with:
-          category: /language:${{ matrix.language }}-repository:${{ matrix.name }}
+          category: "/external/${{ matrix.name }}"
+          output: results
+          upload: never
+
+      - name: Save SARIF results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-${{ matrix.name }}
+          path: results/
+          if-no-files-found: ignore
+          retention-days: 14
