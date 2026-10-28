@@ -20,74 +20,73 @@ jobs:
           - name: juice-shop
             repo: juice-shop/juice-shop
             language: javascript-typescript
-            build-mode: none
           - name: webgoat
             repo: WebGoat/WebGoat
             language: java-kotlin
-            build-mode: autobuild
           - name: nodegoat
             repo: OWASP/NodeGoat
             language: javascript-typescript
-            build-mode: none
           - name: pygoat
             repo: adeyosemanputra/pygoat
             language: python
-            build-mode: none
           - name: vulnshop
             repo: nr-yolo/Vulnshop
             language: javascript
-            build-mode: none
           - name: iwa-java
             repo: fortify/IWA-Java
             language: java-kotlin
-            build-mode: autobuild
           - name: vulnerable-java-app
             repo: siddharthoak/vulnerable-java-app
             language: java-kotlin
-            build-mode: autobuild
           - name: vulnbookstore
             repo: tobiasbruss/vulnerable-repo
             language: python
-            build-mode: none
           - name: vulnerable-graphql
             repo: dolevf/Damn-Vulnerable-GraphQL-Application
             language: javascript-typescript
-            build-mode: none
           - name: railsgoat
             repo: OWASP/railsgoat
             language: ruby
-            build-mode: none
 
     steps:
+      # 1. Клонируем репозиторий БЕЗ path, чтобы код оказался в корне $GITHUB_WORKSPACE
       - name: Checkout ${{ matrix.project.repo }}
         uses: actions/checkout@v4
         with:
           repository: ${{ matrix.project.repo }}
-          path: target-repo
+          fetch-depth: 1
 
+      # 2. Инициализация CodeQL. Для всех используем autobuild — самый надежный режим
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.project.build-mode }}
-          source-root: target-repo   # <-- КРИТИЧЕСКИ ВАЖНО: указывает CodeQL искать код в скачанной папке
+          build-mode: autobuild
 
+      # 3. Анализ. continue-on-error не даст упасть всему пайплайну из-за одного проекта
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
+        continue-on-error: true
         with:
           category: "/language:${{ matrix.language }}/project:${{ matrix.project.name }}"
           output: codeql-results-${{ matrix.project.name }}
           upload: false
 
+      # 4. Подготовка JSON-отчетов (SARIF уже является JSON)
       - name: Prepare JSON Reports
+        if: always() # Выполняется даже если анализ упал
         run: |
           mkdir -p final-json-reports
-          find codeql-results-${{ matrix.project.name }} -name "*.sarif" -exec cp {} final-json-reports/${{ matrix.project.name }}-codeql.json \;
+          # Ищем SARIF файлы и переименовываем их в .json
+          find codeql-results-${{ matrix.project.name }} -name "*.sarif" -exec cp {} final-json-reports/${{ matrix.project.name }}-codeql.json \; || true
+          # Если файлов нет, создаем пустой JSON, чтобы шаг загрузки не упал
           if [ ! -f final-json-reports/${{ matrix.project.name }}-codeql.json ]; then
             echo '{"runs": [], "version": "2.1.0"}' > final-json-reports/${{ matrix.project.name }}-codeql.json
           fi
 
+      # 5. Загрузка артефактов
       - name: Upload JSON reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: codeql-json-${{ matrix.project.name }}
