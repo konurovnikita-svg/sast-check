@@ -20,6 +20,9 @@ jobs:
           - name: juice-shop
             repo: juice-shop/juice-shop
             language: javascript-typescript
+          - name: dvwa
+            repo: digininja/DVWA
+            language: javascript-typescript # PHP не поддерживается, будет пустой артефакт
           - name: webgoat
             repo: WebGoat/WebGoat
             language: java-kotlin
@@ -44,9 +47,6 @@ jobs:
           - name: vulnerable-graphql
             repo: dolevf/Damn-Vulnerable-GraphQL-Application
             language: javascript-typescript
-          - name: railsgoat
-            repo: OWASP/railsgoat
-            language: ruby
 
     steps:
       - name: Checkout ${{ matrix.project.repo }}
@@ -55,31 +55,23 @@ jobs:
           repository: ${{ matrix.project.repo }}
           path: target-repo
 
-      # 1. Инициализация CodeQL для ВСЕХ проектов, КРОМЕ vulnshop
-      - name: Initialize CodeQL (Default)
-        if: matrix.project.name != 'vulnshop'
+      # 1. Инициализация (защищена от падения)
+      - name: Initialize CodeQL
+        continue-on-error: true
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           source-root: target-repo
+          # Указываем пути только для vulnshop (относительно source-root)
+          paths: ${{ matrix.project.name == 'vulnshop' && 'backend\nfrontend' || '' }}
 
-      # 2. Инициализация CodeQL ТОЛЬКО для vulnshop с указанием путей
-      - name: Initialize CodeQL (Vulnshop)
-        if: matrix.project.name == 'vulnshop'
-        uses: github/codeql-action/init@v4
-        with:
-          languages: ${{ matrix.language }}
-          source-root: target-repo
-          paths: |
-            target-repo/backend
-            target-repo/frontend
-
-      # 3. Автосборка (только для компилируемых языков)
+      # 2. Автосборка (защищена от падения)
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
         if: matrix.language == 'java-kotlin' || matrix.language == 'ruby'
+        continue-on-error: true
 
-      # 4. Анализ (не роняем пайплайн при ошибке)
+      # 3. Анализ (защищен от падения)
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         continue-on-error: true
@@ -88,20 +80,20 @@ jobs:
           output: codeql-results-${{ matrix.project.name }}
           upload: false
 
-      # 5. Подготовка JSON (выполняется всегда)
+      # 4. Подготовка JSON (выполняется ВСЕГДА, даже если все шаги выше упали)
       - name: Prepare JSON Reports
         if: always()
         run: |
           mkdir -p final-json-reports
-          # Копируем SARIF в JSON
+          # Пытаемся найти SARIF
           find codeql-results-${{ matrix.project.name }} -name "*.sarif" -exec cp {} final-json-reports/${{ matrix.project.name }}-codeql.json \; || true
           
-          # Если файл так и не создался (проект упал), создаем пустой валидный JSON
+          # Если SARIF не создался, принудительно делаем пустой JSON
           if [ ! -f final-json-reports/${{ matrix.project.name }}-codeql.json ]; then
             echo '{"runs": [], "version": "2.1.0"}' > final-json-reports/${{ matrix.project.name }}-codeql.json
           fi
 
-      # 6. Загрузка артефактов (выполняется всегда)
+      # 5. Загрузка артефактов (выполняется ВСЕГДА)
       - name: Upload JSON reports
         if: always()
         uses: actions/upload-artifact@v4
