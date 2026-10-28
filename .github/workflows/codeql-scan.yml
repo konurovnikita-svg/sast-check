@@ -32,7 +32,7 @@ jobs:
           - name: vulnshop
             repo: nr-yolo/Vulnshop
             language: javascript
-            source-root: target-repo/backend   # код Vulnshop лежит в подпапке backend
+            # source-root удалён. CodeQL будет искать код по всему репозиторию.
           - name: iwa-java
             repo: fortify/IWA-Java
             language: java-kotlin
@@ -60,12 +60,13 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          # Если для проекта указан source-root, используем его, иначе — корень target-repo
-          source-root: ${{ matrix.project.source-root || 'target-repo' }}
+          # Явно указываем build-mode: none для интерпретируемых языков
+          build-mode: ${{ (matrix.language == 'javascript' || matrix.language == 'javascript-typescript' || matrix.language == 'python' || matrix.language == 'ruby') && 'none' || 'autobuild' }}
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
-        if: matrix.language == 'java-kotlin' || matrix.language == 'ruby'
+        # Autobuild теперь выполняется только если build-mode не 'none'
+        if: matrix.language == 'java-kotlin' || matrix.language == 'csharp'
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
@@ -77,9 +78,7 @@ jobs:
       - name: Prepare JSON Reports
         run: |
           mkdir -p final-json-reports
-          # CodeQL сохраняет файлы .sarif, которые уже являются JSON.
           find codeql-results-${{ matrix.project.name }} -name "*.sarif" -exec cp {} final-json-reports/${{ matrix.project.name }}-codeql.json \;
-          # Если файлов нет, создаем пустой JSON, чтобы шаг загрузки не упал
           if [ ! -f final-json-reports/${{ matrix.project.name }}-codeql.json ]; then
             echo '{"runs": [], "version": "2.1.0"}' > final-json-reports/${{ matrix.project.name }}-codeql.json
           fi
