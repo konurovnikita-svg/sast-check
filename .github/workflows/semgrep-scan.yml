@@ -4,8 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
 
 jobs:
   semgrep:
@@ -35,7 +33,6 @@ jobs:
             repo: tobiasbruss/vulnerable-repo
           - name: vulnerable-graphql
             repo: dolevf/Damn-Vulnerable-GraphQL-Application
-          # Дополнительные проекты из ваших скриншотов
           - name: bwapp
             repo: lelouch-repo/buggy-app
           - name: railsgoat
@@ -54,6 +51,7 @@ jobs:
 
       - name: Run Semgrep (JSON)
         run: |
+          # Обратите внимание на путь /src/ - именно туда монтируется папка target-repo
           docker run --rm \
             -v "${{ github.workspace }}/target-repo:/src" \
             -w /src \
@@ -62,7 +60,7 @@ jobs:
             --config auto \
             --config p/owasp-top-ten \
             --json \
-            --json-output=/${{ matrix.project.name }}-semgrep.json \
+            --output=/${{ matrix.project.name }}-semgrep.json \
             . || true
 
       - name: Upload JSON report
@@ -70,4 +68,5 @@ jobs:
         with:
           name: semgrep-json-${{ matrix.project.name }}
           path: target-repo/${{ matrix.project.name }}-semgrep.json
+          if-no-files-found: error # Теперь пайплайн упадет с ошибкой, если файл не создался
           retention-days: 30
