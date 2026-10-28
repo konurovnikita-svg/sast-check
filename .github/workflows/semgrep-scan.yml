@@ -1,83 +1,64 @@
-name: Semgrep SAST Matrix Scan
+name: Semgrep Multi-Repo Scan
 
 on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  security-events: write
+  workflow_dispatch: 
+  schedule:
+    - cron: '0 3 * * 1' # Опционально: еженедельный запуск
 
 jobs:
-  semgrep:
-    name: Semgrep Scan - ${{ matrix.project }}
+  semgrep-scan:
+    name: Scan - ${{ matrix.project.name }}
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: false # Продолжать сканирование остальных проектов, даже если один упал
       matrix:
         project:
-          - bwapp
-          - dvna
-          - dvwa
-          - juice-shop
-          - nodegoat
-          - railsgoat
-          - vulnerable-flask-app
-          - webgoat
-          - xvwa
+          - name: "juice-shop"
+            repo: "juice-shop/juice-shop"
+          - name: "dvwa"
+            repo: "digininja/DVWA"
+          - name: "webgoat"
+            repo: "WebGoat/WebGoat"
+          - name: "nodegoat"
+            repo: "OWASP/NodeGoat"
+          - name: "pygoat"
+            repo: "adeyosemanputr/pygoat"
+          - name: "vulnshop"
+            repo: "appsec-vulnerable/vulnshop" # Уточнить точный upstream-путь репозитория
+          - name: "iwa-java"
+            repo: "hdiv/iwa-java"               # Уточнить точный upstream-путь репозитория
+          - name: "vulnerable-java-app"
+            repo: "snyk-labs/java-goof"
+          - name: "vulnbookstore"
+            repo: "vulnbookstore/vulnbookstore" # Уточнить точный upstream-путь репозитория
+          - name: "vulnerable-graphql"
+            repo: "dolevf/Damn-Vulnerable-GraphQL-Application"
 
     steps:
-      - name: Checkout with submodules
+      - name: Checkout Target Repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
-          fetch-depth: 0
+          repository: ${{ matrix.project.repo }}
+          path: target-repo
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Semgrep
-        run: pip install semgrep
-
-      - name: Run Semgrep on ${{ matrix.project }}
-        continue-on-error: true
+      - name: Run Semgrep with JSON Export
         run: |
-          semgrep scan --config auto \
-            --sarif --output semgrep-${{ matrix.project }}.sarif \
-            repos/${{ matrix.project }} || true
-      - name: Generate CSV and Debug Output
-        if: always()
-        run: |
-          ls -la semgrep-${{ matrix.project }}.* || echo "Файлы не найдены"
-          if [ -f "semgrep-${{ matrix.project }}.sarif" ]; then
-            echo "project,rule_id,severity,file,line,message" > semgrep-${{ matrix.project }}.csv
-            # ИЗМЕНЕНИЕ: Берем severity из properties.severity, приводим к верхнему регистру
-            jq -r --arg project "${{ matrix.project }}" \
-              '.runs[].results[]? | [$project, .ruleId, ((.properties.severity // .level // "N/A") | ascii_upcase), (.locations[0].physicalLocation.artifactLocation.uri // "N/A"), (.locations[0].physicalLocation.region.startLine // 0), (.message.text | gsub("\n"; " "))] | @csv' \
-              semgrep-${{ matrix.project }}.sarif >> semgrep-${{ matrix.project }}.csv
-          else
-            echo '{"version": "2.1.0", "runs": []}' > semgrep-${{ matrix.project }}.sarif
-            echo "project,rule_id,severity,file,line,message" > semgrep-${{ matrix.project }}.csv
-          fi
-      - name: Upload Semgrep Reports (SARIF & CSV)
-        if: always()
+          docker run --rm \
+            -v "${{ github.workspace }}/target-repo:/src" \
+            -w /src \
+            semgrep/semgrep \
+            semgrep scan \
+            --config auto \
+            --config p/owasp-top-ten \
+            --json \
+            --json-output=/${{ matrix.project.name }}-semgrep.json \
+            . || true
+          # Перемещаем отчет в корень рабочей директории для удобства выгрузки
+          docker run --rm -v "${{ github.workspace }}/target-repo:/src" alpine mv /src/${{ matrix.project.name }}-semgrep.json /src/ 2>/dev/null || true
+
+      - name: Upload JSON Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: semgrep-results-${{ matrix.project }}
-          path: |
-            semgrep-${{ matrix.project }}.sarif
-            semgrep-${{ matrix.project }}.csv
-          if-no-files-found: warn
+          name: semgrep-result-${{ matrix.project.name }}
+          path: target-repo/${{ matrix.project.name }}-semgrep.json
           retention-days: 30
-
-      - name: Upload SARIF to Security Tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: semgrep-${{ matrix.project }}.sarif
-          category: semgrep-${{ matrix.project }}
-        continue-on-error: true
