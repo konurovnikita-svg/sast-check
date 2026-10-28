@@ -55,38 +55,55 @@ jobs:
           repository: ${{ matrix.project.repo }}
           path: target-repo
 
-      - name: Initialize CodeQL
+      # 1. Инициализация CodeQL для ВСЕХ проектов, КРОМЕ vulnshop
+      - name: Initialize CodeQL (Default)
+        if: matrix.project.name != 'vulnshop'
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           source-root: target-repo
 
-      # Автосборка для компилируемых языков
+      # 2. Инициализация CodeQL ТОЛЬКО для vulnshop с указанием путей
+      - name: Initialize CodeQL (Vulnshop)
+        if: matrix.project.name == 'vulnshop'
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          source-root: target-repo
+          paths: |
+            target-repo/backend
+            target-repo/frontend
+
+      # 3. Автосборка (только для компилируемых языков)
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
         if: matrix.language == 'java-kotlin' || matrix.language == 'ruby'
 
+      # 4. Анализ (не роняем пайплайн при ошибке)
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
-        continue-on-error: true # <-- ВАЖНО: не роняем пайплайн, если анализ упал
+        continue-on-error: true
         with:
           category: "/language:${{ matrix.language }}/project:${{ matrix.project.name }}"
           output: codeql-results-${{ matrix.project.name }}
           upload: false
 
+      # 5. Подготовка JSON (выполняется всегда)
       - name: Prepare JSON Reports
-        if: always() # <-- ВАЖНО: выполняем, даже если предыдущий шаг упал
+        if: always()
         run: |
           mkdir -p final-json-reports
+          # Копируем SARIF в JSON
           find codeql-results-${{ matrix.project.name }} -name "*.sarif" -exec cp {} final-json-reports/${{ matrix.project.name }}-codeql.json \; || true
           
-          # Если файлов не нашлось (анализ упал), создаем пустой валидный JSON
+          # Если файл так и не создался (проект упал), создаем пустой валидный JSON
           if [ ! -f final-json-reports/${{ matrix.project.name }}-codeql.json ]; then
             echo '{"runs": [], "version": "2.1.0"}' > final-json-reports/${{ matrix.project.name }}-codeql.json
           fi
 
+      # 6. Загрузка артефактов (выполняется всегда)
       - name: Upload JSON reports
-        if: always() # <-- ВАЖНО: загружаем артефакты всегда
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: codeql-json-${{ matrix.project.name }}
