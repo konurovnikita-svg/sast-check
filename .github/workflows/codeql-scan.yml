@@ -20,34 +20,43 @@ jobs:
           - name: juice-shop
             repo: juice-shop/juice-shop
             language: javascript-typescript
+            build-mode: none
           - name: webgoat
             repo: WebGoat/WebGoat
             language: java-kotlin
+            build-mode: autobuild
           - name: nodegoat
             repo: OWASP/NodeGoat
             language: javascript-typescript
+            build-mode: none
           - name: pygoat
             repo: adeyosemanputra/pygoat
             language: python
+            build-mode: none
           - name: vulnshop
             repo: nr-yolo/Vulnshop
             language: javascript
-            # source-root удалён. CodeQL будет искать код по всему репозиторию.
+            build-mode: none
           - name: iwa-java
             repo: fortify/IWA-Java
             language: java-kotlin
+            build-mode: autobuild
           - name: vulnerable-java-app
             repo: siddharthoak/vulnerable-java-app
             language: java-kotlin
+            build-mode: autobuild
           - name: vulnbookstore
             repo: tobiasbruss/vulnerable-repo
             language: python
+            build-mode: none
           - name: vulnerable-graphql
             repo: dolevf/Damn-Vulnerable-GraphQL-Application
             language: javascript-typescript
+            build-mode: none
           - name: railsgoat
             repo: OWASP/railsgoat
             language: ruby
+            build-mode: none
 
     steps:
       - name: Checkout ${{ matrix.project.repo }}
@@ -60,13 +69,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
-          # Явно указываем build-mode: none для интерпретируемых языков
-          build-mode: ${{ (matrix.language == 'javascript' || matrix.language == 'javascript-typescript' || matrix.language == 'python' || matrix.language == 'ruby') && 'none' || 'autobuild' }}
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
-        # Autobuild теперь выполняется только если build-mode не 'none'
-        if: matrix.language == 'java-kotlin' || matrix.language == 'csharp'
+          build-mode: ${{ matrix.project.build-mode }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
