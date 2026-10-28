@@ -1,83 +1,92 @@
-name: CodeQL Multi-Repo Scan
+name: CodeQL SAST Scan
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 4 * * 1'
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+  security-events: write   # не обязательно, но безопасно оставить
 
 jobs:
-  codeql-scan:
-    name: Scan - ${{ matrix.project.name }} (${{ matrix.language }})
+  codeql:
+    name: CodeQL - ${{ matrix.project.name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         project:
-          - name: "juice-shop"
-            repo: "juice-shop/juice-shop"
-            language: "javascript-typescript"
-          - name: "dvwa"
-            repo: "digininja/DVWA"
-            language: "php" # CodeQL не поддерживает PHP напрямую, потребуется ручная конвертация или выбор другого языка
-          - name: "webgoat"
-            repo: "WebGoat/WebGoat"
-            language: "java-kotlin"
-          - name: "nodegoat"
-            repo: "OWASP/NodeGoat"
-            language: "javascript-typescript"
-          - name: "pygoat"
-            repo: "adeyosemanputr/pygoat"
-            language: "python"
-          - name: "vulnshop"
-            repo: "appsec-vulnerable/vulnshop"
-            language: "javascript-typescript"
-          - name: "iwa-java"
-            repo: "hdiv/iwa-java"
-            language: "java-kotlin"
-          - name: "vulnerable-java-app"
-            repo: "snyk-labs/java-goof"
-            language: "java-kotlin"
-          - name: "vulnbookstore"
-            repo: "vulnbookstore/vulnbookstore"
-            language: "python"
-          - name: "vulnerable-graphql"
-            repo: "dolevf/Damn-Vulnerable-GraphQL-Application"
-            language: "javascript-typescript"
+          - name: juice-shop
+            repo: juice-shop/juice-shop
+            language: javascript-typescript
+          - name: webgoat
+            repo: WebGoat/WebGoat
+            language: java-kotlin
+          - name: nodegoat
+            repo: OWASP/NodeGoat
+            language: javascript-typescript
+          - name: pygoat
+            repo: adeyosemanputra/pygoat
+            language: python
+          - name: vulnshop
+            repo: nr-yolo/Vulnshop
+            language: javascript-typescript
+          - name: iwa-java
+            repo: fortify/IWA-Java
+            language: java-kotlin
+          - name: vulnerable-java-app
+            repo: siddharthoak/vulnerable-java-app
+            language: java-kotlin
+          - name: vulnbookstore
+            repo: tobiasbruss/vulnerable-repo
+            language: python   # уточните, если проект на другом языке
+          - name: vulnerable-graphql
+            repo: dolevf/Damn-Vulnerable-GraphQL-Application
+            language: javascript-typescript
+          - name: railsgoat
+            repo: OWASP/railsgoat
+            language: ruby
+          # PHP-проекты (DVWA, bWAPP, XVWA) в CodeQL не поддерживаются,
+          # поэтому они исключены из этой матрицы.
+        # Если какой-то проект не должен сканироваться CodeQL,
+        # просто не добавляйте его в список выше.
 
     steps:
-      - name: Checkout Target Repository
+      - name: Checkout ${{ matrix.project.repo }}
         uses: actions/checkout@v4
         with:
           repository: ${{ matrix.project.repo }}
           path: target-repo
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           source-root: target-repo
 
-      - name: Autobuild (if compiled language)
-        uses: github/codeql-action/autobuild@v3
-        if: matrix.language == 'java-kotlin'
+      - name: Autobuild (для компилируемых языков)
+        uses: github/codeql-action/autobuild@v4
+        if: matrix.language == 'java-kotlin' || matrix.language == 'ruby'
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}/project:${{ matrix.project.name }}"
           output: codeql-results-${{ matrix.project.name }}
-          upload: false # Отключаем автоматическую загрузку SARIF, чтобы не засорять вкладку Security
+          upload: false          # отключаем автоматическую загрузку SARIF, чтобы избежать ошибки "Maximum retry attempts exhausted"
 
       - name: Convert BQRS to JSON
         run: |
-          # Поиск всех сгенерированных файлов .bqrs и конвертация их в JSON
-          find codeql-results-${{ matrix.project.name }} -name "*.bqrs" | while read bqrs_file; do
-            json_file="${bqrs_file%.bqrs}.json"
-            codeql bqrs decode --format=json --output="$json_file" "$bqrs_file"
+          # CodeQL CLI уже доступен в окружении после шага analyze
+          find codeql-results-${{ matrix.project.name }} -name "*.bqrs" | while read bqrs; do
+            json="${bqrs%.bqrs}.json"
+            codeql bqrs decode --format=json --output="$json" "$bqrs"
           done
-        # Примечание: если CLI не установлен в PATH по умолчанию, используйте полный путь к бинарнику CodeQL
 
-      - name: Upload JSON Artifacts
+      - name: Upload JSON reports
         uses: actions/upload-artifact@v4
         with:
           name: codeql-json-${{ matrix.project.name }}
