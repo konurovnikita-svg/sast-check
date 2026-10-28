@@ -1,56 +1,98 @@
-name: "CodeQL Analysis"
+name: "CodeQL Multi-Repo Analysis"
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 1'  # Запуск каждый понедельник
 
 jobs:
   analyze:
-    name: CodeQL - ${{ matrix.language }}
+    name: CodeQL - ${{ matrix.repo_name }}
     runs-on: ubuntu-latest
-    
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'javascript', 'python', 'java' ]
-    
+        include:
+          - repo: 'juice-shop/juice-shop'
+            repo_name: 'juice-shop'
+            language: 'javascript'
+          
+          - repo: 'digininja/DVWA'
+            repo_name: 'dvwa'
+            language: 'php'
+          
+          - repo: 'WebGoat/WebGoat'
+            repo_name: 'webgoat'
+            language: 'java'
+          
+          - repo: 'OWASP/NodeGoat'
+            repo_name: 'nodegoat'
+            language: 'javascript'
+          
+          - repo: 'OWASP/PyGoat'
+            repo_name: 'pygoat'
+            language: 'python'
+          
+          - repo: 'snoopysecurity/vulnshop'
+            repo_name: 'vulnshop'
+            language: 'python'
+          
+          - repo: 'OWASP/IWA-Java'
+            repo_name: 'iwa-java'
+            language: 'java'
+          
+          - repo: 'OWASP/vulnerable-java-app'
+            repo_name: 'vulnerable-java-app'
+            language: 'java'
+          
+          - repo: 'OWASP/VulnBookStore'
+            repo_name: 'vulnbookstore'
+            language: 'java'
+          
+          - repo: 'dolevf/Damn-Vulnerable-GraphQL-Application'
+            repo_name: 'vulnerable-graphql'
+            language: 'javascript'
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Clone target repository
+      run: |
+        git clone https://github.com/${{ matrix.repo }} target-repo
+        cd target-repo
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
+        source-root: target-repo
 
     - name: Autobuild
       uses: github/codeql-action/autobuild@v3
+      continue-on-error: true
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
         output: sarif-results
+        category: ${{ matrix.language }}
 
     - name: Convert SARIF to JSON
       run: |
-        # Установить jq для обработки JSON
         sudo apt-get install -y jq
-        
-        # Конвертировать SARIF в JSON
         for file in sarif-results/*.sarif; do
           if [ -f "$file" ]; then
             filename=$(basename "$file" .sarif)
-            cat "$file" | jq '.' > "${filename}.json"
-            echo "Created ${filename}.json"
+            cat "$file" | jq '.' > "${{ matrix.repo_name }}-${filename}.json"
+            echo "Created ${{ matrix.repo_name }}-${filename}.json"
           fi
         done
 
     - name: Upload JSON artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: codeql-results-${{ matrix.language }}
+        name: codeql-${{ matrix.repo_name }}
         path: |
           *.json
           *.sarif
