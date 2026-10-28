@@ -23,7 +23,7 @@ jobs:
 
           - name: dvwa
             repo: https://github.com/digininja/DVWA.git
-            language: python
+            language: php
             build_mode: none
 
           - name: webgoat
@@ -37,29 +37,29 @@ jobs:
             build_mode: none
 
           - name: pygoat
-            repo: https://github.com/pygoat/pygoat.git
+            repo: https://github.com/adeyosemanputra/pygoat.git
             language: python
             build_mode: none
 
           - name: vulnshop
-            repo: REPLACE_WITH_VULNSHOP_URL
-            language: javascript-typescript
+            repo: https://github.com/dev-abhrajit/VulnShop.git
+            language: python
             build_mode: none
 
           - name: iwa-java
-            repo: REPLACE_WITH_IWA_JAVA_URL
+            repo: https://github.com/fortify/IWA-Java.git
             language: java-kotlin
             build_mode: autobuild
 
           - name: vulnerable-java-app
-            repo: REPLACE_WITH_VULNERABLE_JAVA_APP_URL
+            repo: https://github.com/ryanmcmorrowsnyk/vulnerable-java-app.git
             language: java-kotlin
             build_mode: autobuild
 
           - name: vulnbookstore
-            repo: REPLACE_WITH_VULNBOOKSTORE_URL
-            language: java-kotlin
-            build_mode: autobuild
+            repo: https://github.com/REPLACE_WITH_OWNER/VulnBookStore.git
+            language: javascript-typescript
+            build_mode: none
 
           - name: vulnerable-graphql
             repo: https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application.git
@@ -69,6 +69,15 @@ jobs:
     steps:
       - name: Checkout workflow repository
         uses: actions/checkout@v4
+
+      - name: Validate repository URL
+        env:
+          REPOSITORY_URL: ${{ matrix.repo }}
+        run: |
+          if [[ "$REPOSITORY_URL" == *"REPLACE_WITH"* ]]; then
+            echo "::error::Repository URL for ${{ matrix.name }} is still a placeholder."
+            exit 1
+          fi
 
       - name: Clone target repository
         env:
@@ -94,7 +103,7 @@ jobs:
           output: results
           upload: never
 
-      - name: Save SARIF results
+      - name: Upload SARIF artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
