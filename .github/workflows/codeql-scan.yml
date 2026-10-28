@@ -4,12 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
 
 permissions:
   contents: read
-  security-events: write   # не обязательно, но безопасно оставить
+  security-events: write
 
 jobs:
   codeql:
@@ -42,17 +40,13 @@ jobs:
             language: java-kotlin
           - name: vulnbookstore
             repo: tobiasbruss/vulnerable-repo
-            language: python   # уточните, если проект на другом языке
+            language: python
           - name: vulnerable-graphql
             repo: dolevf/Damn-Vulnerable-GraphQL-Application
             language: javascript-typescript
           - name: railsgoat
             repo: OWASP/railsgoat
             language: ruby
-          # PHP-проекты (DVWA, bWAPP, XVWA) в CodeQL не поддерживаются,
-          # поэтому они исключены из этой матрицы.
-        # Если какой-то проект не должен сканироваться CodeQL,
-        # просто не добавляйте его в список выше.
 
     steps:
       - name: Checkout ${{ matrix.project.repo }}
@@ -67,7 +61,7 @@ jobs:
           languages: ${{ matrix.language }}
           source-root: target-repo
 
-      - name: Autobuild (для компилируемых языков)
+      - name: Autobuild
         uses: github/codeql-action/autobuild@v4
         if: matrix.language == 'java-kotlin' || matrix.language == 'ruby'
 
@@ -76,19 +70,18 @@ jobs:
         with:
           category: "/language:${{ matrix.language }}/project:${{ matrix.project.name }}"
           output: codeql-results-${{ matrix.project.name }}
-          upload: false          # отключаем автоматическую загрузку SARIF, чтобы избежать ошибки "Maximum retry attempts exhausted"
+          upload: false
 
-      - name: Convert BQRS to JSON
+      - name: Prepare JSON Reports
         run: |
-          # CodeQL CLI уже доступен в окружении после шага analyze
-          find codeql-results-${{ matrix.project.name }} -name "*.bqrs" | while read bqrs; do
-            json="${bqrs%.bqrs}.json"
-            codeql bqrs decode --format=json --output="$json" "$bqrs"
-          done
+          # CodeQL создает SARIF файлы. Мы просто копируем их и даем расширение .json
+          mkdir -p final-json-reports
+          find codeql-results-${{ matrix.project.name }} -name "*.sarif" -exec cp {} final-json-reports/${{ matrix.project.name }}-codeql.json \;
 
       - name: Upload JSON reports
         uses: actions/upload-artifact@v4
         with:
           name: codeql-json-${{ matrix.project.name }}
-          path: codeql-results-${{ matrix.project.name }}/**/*.json
+          path: final-json-reports/*.json
+          if-no-files-found: error # Если файлов нет - пайплайн покажет ошибку
           retention-days: 30
