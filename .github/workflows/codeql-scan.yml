@@ -1,103 +1,57 @@
-name: CodeQL SAST Scan
+name: "CodeQL Analysis"
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ main, master ]
-
-permissions:
-  contents: read
-  security-events: write
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  codeql:
-    name: CodeQL - ${{ matrix.project.name }}
+  analyze:
+    name: CodeQL - ${{ matrix.language }}
     runs-on: ubuntu-latest
+    
     strategy:
       fail-fast: false
       matrix:
-        project:
-          - name: juice-shop
-            repo: juice-shop/juice-shop
-            language: javascript-typescript
-          - name: dvwa
-            repo: digininja/DVWA
-            language: javascript-typescript # PHP не поддерживается, будет пустой артефакт
-          - name: webgoat
-            repo: WebGoat/WebGoat
-            language: java-kotlin
-          - name: nodegoat
-            repo: OWASP/NodeGoat
-            language: javascript-typescript
-          - name: pygoat
-            repo: adeyosemanputra/pygoat
-            language: python
-          - name: vulnshop
-            repo: nr-yolo/Vulnshop
-            language: javascript-typescript
-          - name: iwa-java
-            repo: fortify/IWA-Java
-            language: java-kotlin
-          - name: vulnerable-java-app
-            repo: siddharthoak/vulnerable-java-app
-            language: java-kotlin
-          - name: vulnbookstore
-            repo: tobiasbruss/vulnerable-repo
-            language: python
-          - name: vulnerable-graphql
-            repo: dolevf/Damn-Vulnerable-GraphQL-Application
-            language: javascript-typescript
-
+        language: [ 'javascript', 'python', 'java' ]
+    
     steps:
-      - name: Checkout ${{ matrix.project.repo }}
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ matrix.project.repo }}
-          path: target-repo
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      # 1. Инициализация (защищена от падения)
-      - name: Initialize CodeQL
-        continue-on-error: true
-        uses: github/codeql-action/init@v4
-        with:
-          languages: ${{ matrix.language }}
-          source-root: target-repo
-          # Указываем пути только для vulnshop (относительно source-root)
-          paths: ${{ matrix.project.name == 'vulnshop' && 'backend\nfrontend' || '' }}
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
 
-      # 2. Автосборка (защищена от падения)
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
-        if: matrix.language == 'java-kotlin' || matrix.language == 'ruby'
-        continue-on-error: true
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
 
-      # 3. Анализ (защищен от падения)
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
-        continue-on-error: true
-        with:
-          category: "/language:${{ matrix.language }}/project:${{ matrix.project.name }}"
-          output: codeql-results-${{ matrix.project.name }}
-          upload: false
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        output: sarif-results
 
-      # 4. Подготовка JSON (выполняется ВСЕГДА, даже если все шаги выше упали)
-      - name: Prepare JSON Reports
-        if: always()
-        run: |
-          mkdir -p final-json-reports
-          # Пытаемся найти SARIF
-          find codeql-results-${{ matrix.project.name }} -name "*.sarif" -exec cp {} final-json-reports/${{ matrix.project.name }}-codeql.json \; || true
-          
-          # Если SARIF не создался, принудительно делаем пустой JSON
-          if [ ! -f final-json-reports/${{ matrix.project.name }}-codeql.json ]; then
-            echo '{"runs": [], "version": "2.1.0"}' > final-json-reports/${{ matrix.project.name }}-codeql.json
+    - name: Convert SARIF to JSON
+      run: |
+        # Установить jq для обработки JSON
+        sudo apt-get install -y jq
+        
+        # Конвертировать SARIF в JSON
+        for file in sarif-results/*.sarif; do
+          if [ -f "$file" ]; then
+            filename=$(basename "$file" .sarif)
+            cat "$file" | jq '.' > "${filename}.json"
+            echo "Created ${filename}.json"
           fi
+        done
 
-      # 5. Загрузка артефактов (выполняется ВСЕГДА)
-      - name: Upload JSON reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: codeql-json-${{ matrix.project.name }}
-          path: final-json-reports/*.json
-          retention-days: 30
+    - name: Upload JSON artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: codeql-results-${{ matrix.language }}
+        path: |
+          *.json
+          *.sarif
+        retention-days: 30
