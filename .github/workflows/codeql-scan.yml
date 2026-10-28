@@ -11,6 +11,7 @@ jobs:
   codeql-scan:
     name: Scan ${{ matrix.name }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     strategy:
       fail-fast: false
@@ -43,7 +44,7 @@ jobs:
 
           - name: vulnshop
             repo: https://github.com/dev-abhrajit/VulnShop.git
-            language: python
+            language: javascript-typescript
             build_mode: none
 
           - name: iwa-java
@@ -75,7 +76,7 @@ jobs:
           REPOSITORY_URL: ${{ matrix.repo }}
         run: |
           if [[ "$REPOSITORY_URL" == *"REPLACE_WITH"* ]]; then
-            echo "::error::Repository URL for ${{ matrix.name }} is still a placeholder."
+            echo "::error::Missing repository URL for ${{ matrix.name }}"
             exit 1
           fi
 
@@ -83,27 +84,29 @@ jobs:
         env:
           REPOSITORY_URL: ${{ matrix.repo }}
         run: |
+          set -euo pipefail
           git clone --depth 1 "$REPOSITORY_URL" source
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           source-root: source
           build-mode: ${{ matrix.build_mode }}
+          debug: true
 
       - name: Autobuild
         if: matrix.build_mode == 'autobuild'
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: Analyze with CodeQL
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/external/${{ matrix.name }}"
           output: results
           upload: never
 
-      - name: Upload SARIF artifact
+      - name: Upload SARIF results
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -111,3 +114,14 @@ jobs:
           path: results/
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Upload CodeQL debug logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-${{ matrix.name }}
+          path: |
+            **/codeql*.log
+            **/codeql-action.log
+          if-no-files-found: ignore
+          retention-days: 7
