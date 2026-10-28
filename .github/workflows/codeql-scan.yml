@@ -70,6 +70,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.project.build-mode }}
+          source-root: target-repo   # <-- КРИТИЧЕСКИ ВАЖНО: указывает CodeQL искать код в скачанной папке
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
