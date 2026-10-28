@@ -2,6 +2,10 @@ name: "CodeQL Multi-Repo Analysis"
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/codeql-scan.yml'
   schedule:
     - cron: '0 0 * * 1'
 
@@ -16,87 +20,87 @@ jobs:
           - repo: 'juice-shop/juice-shop'
             repo_name: 'juice-shop'
             language: 'javascript'
-          
+
           - repo: 'digininja/DVWA'
             repo_name: 'dvwa'
             language: 'php'
-          
+
           - repo: 'WebGoat/WebGoat'
             repo_name: 'webgoat'
             language: 'java'
-          
+
           - repo: 'OWASP/NodeGoat'
             repo_name: 'nodegoat'
             language: 'javascript'
-          
+
           - repo: 'OWASP/PyGoat'
             repo_name: 'pygoat'
             language: 'python'
-          
+
           - repo: 'snoopysecurity/vulnshop'
             repo_name: 'vulnshop'
             language: 'python'
-          
+
           - repo: 'OWASP/IWA-Java'
             repo_name: 'iwa-java'
             language: 'java'
-          
+
           - repo: 'OWASP/vulnerable-java-app'
             repo_name: 'vulnerable-java-app'
             language: 'java'
-          
+
           - repo: 'OWASP/VulnBookStore'
             repo_name: 'vulnbookstore'
             language: 'java'
-          
+
           - repo: 'dolevf/Damn-Vulnerable-GraphQL-Application'
             repo_name: 'vulnerable-graphql'
             language: 'javascript'
 
     steps:
-    - name: Checkout workflow repo
-      uses: actions/checkout@v4
+      - name: Checkout workflow repo
+        uses: actions/checkout@v4
 
-    - name: Clone target repository
-      run: |
-        git clone --depth 1 https://github.com/${{ matrix.repo }} target-repo
-        echo "Cloned ${{ matrix.repo }}"
-        ls -la target-repo/
+      - name: Clone target repository
+        run: |
+          git clone --depth 1 https://github.com/${{ matrix.repo }} target-repo
+          echo "Cloned ${{ matrix.repo }}"
+          ls -la target-repo/
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
-        source-root: target-repo
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          source-root: target-repo
 
-    - name: Autobuild (continue on error)
-      uses: github/codeql-action/autobuild@v3
-      continue-on-error: true
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+        continue-on-error: true
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-      with:
-        output: sarif-results/${{ matrix.repo_name }}
-        category: ${{ matrix.language }}
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          output: sarif-results/${{ matrix.repo_name }}
+          category: ${{ matrix.language }}
 
-    - name: Convert SARIF to JSON
-      if: always()
-      run: |
-        sudo apt-get install -y jq
-        mkdir -p results
-        for file in sarif-results/${{ matrix.repo_name }}/*.sarif; do
-          if [ -f "$file" ]; then
-            filename=$(basename "$file" .sarif)
-            cat "$file" | jq '.' > "results/${{ matrix.repo_name }}-${filename}.json"
-            echo "Created results/${{ matrix.repo_name }}-${filename}.json"
-          fi
-        done
-        ls -la results/
+      - name: Convert SARIF to JSON
+        if: always()
+        run: |
+          sudo apt-get install -y jq
+          mkdir -p results
+          for file in sarif-results/${{ matrix.repo_name }}/*.sarif; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file" .sarif)
+              cat "$file" | jq '.' > "results/${{ matrix.repo_name }}-${filename}.json"
+              echo "Created results/${{ matrix.repo_name }}-${filename}.json"
+            fi
+          done
+          ls -la results/
 
-    - name: Upload JSON artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: codeql-${{ matrix.repo_name }}
-        path: results/
-        retention-days: 30
+      - name: Upload JSON artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-${{ matrix.repo_name }}
+          path: results/
+          retention-days: 30
