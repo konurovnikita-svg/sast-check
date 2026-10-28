@@ -1,38 +1,48 @@
-name: Semgrep Multi-Repo Scan
+name: CodeQL Multi-Repo Scan
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
   schedule:
-    - cron: '0 3 * * 1' # Опционально: еженедельный запуск
+    - cron: '0 4 * * 1'
 
 jobs:
-  semgrep-scan:
-    name: Scan - ${{ matrix.project.name }}
+  codeql-scan:
+    name: Scan - ${{ matrix.project.name }} (${{ matrix.language }})
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false # Продолжать сканирование остальных проектов, даже если один упал
+      fail-fast: false
       matrix:
         project:
           - name: "juice-shop"
             repo: "juice-shop/juice-shop"
+            language: "javascript-typescript"
           - name: "dvwa"
             repo: "digininja/DVWA"
+            language: "php" # CodeQL не поддерживает PHP напрямую, потребуется ручная конвертация или выбор другого языка
           - name: "webgoat"
             repo: "WebGoat/WebGoat"
+            language: "java-kotlin"
           - name: "nodegoat"
             repo: "OWASP/NodeGoat"
+            language: "javascript-typescript"
           - name: "pygoat"
             repo: "adeyosemanputr/pygoat"
+            language: "python"
           - name: "vulnshop"
-            repo: "appsec-vulnerable/vulnshop" # Уточнить точный upstream-путь репозитория
+            repo: "appsec-vulnerable/vulnshop"
+            language: "javascript-typescript"
           - name: "iwa-java"
-            repo: "hdiv/iwa-java"               # Уточнить точный upstream-путь репозитория
+            repo: "hdiv/iwa-java"
+            language: "java-kotlin"
           - name: "vulnerable-java-app"
             repo: "snyk-labs/java-goof"
+            language: "java-kotlin"
           - name: "vulnbookstore"
-            repo: "vulnbookstore/vulnbookstore" # Уточнить точный upstream-путь репозитория
+            repo: "vulnbookstore/vulnbookstore"
+            language: "python"
           - name: "vulnerable-graphql"
             repo: "dolevf/Damn-Vulnerable-GraphQL-Application"
+            language: "javascript-typescript"
 
     steps:
       - name: Checkout Target Repository
@@ -41,24 +51,35 @@ jobs:
           repository: ${{ matrix.project.repo }}
           path: target-repo
 
-      - name: Run Semgrep with JSON Export
-        run: |
-          docker run --rm \
-            -v "${{ github.workspace }}/target-repo:/src" \
-            -w /src \
-            semgrep/semgrep \
-            semgrep scan \
-            --config auto \
-            --config p/owasp-top-ten \
-            --json \
-            --json-output=/${{ matrix.project.name }}-semgrep.json \
-            . || true
-          # Перемещаем отчет в корень рабочей директории для удобства выгрузки
-          docker run --rm -v "${{ github.workspace }}/target-repo:/src" alpine mv /src/${{ matrix.project.name }}-semgrep.json /src/ 2>/dev/null || true
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          source-root: target-repo
 
-      - name: Upload JSON Artifact
+      - name: Autobuild (if compiled language)
+        uses: github/codeql-action/autobuild@v3
+        if: matrix.language == 'java-kotlin'
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}/project:${{ matrix.project.name }}"
+          output: codeql-results-${{ matrix.project.name }}
+          upload: false # Отключаем автоматическую загрузку SARIF, чтобы не засорять вкладку Security
+
+      - name: Convert BQRS to JSON
+        run: |
+          # Поиск всех сгенерированных файлов .bqrs и конвертация их в JSON
+          find codeql-results-${{ matrix.project.name }} -name "*.bqrs" | while read bqrs_file; do
+            json_file="${bqrs_file%.bqrs}.json"
+            codeql bqrs decode --format=json --output="$json_file" "$bqrs_file"
+          done
+        # Примечание: если CLI не установлен в PATH по умолчанию, используйте полный путь к бинарнику CodeQL
+
+      - name: Upload JSON Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: semgrep-result-${{ matrix.project.name }}
-          path: target-repo/${{ matrix.project.name }}-semgrep.json
+          name: codeql-json-${{ matrix.project.name }}
+          path: codeql-results-${{ matrix.project.name }}/**/*.json
           retention-days: 30
