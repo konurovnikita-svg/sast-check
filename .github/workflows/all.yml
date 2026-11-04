@@ -16,8 +16,6 @@ jobs:
   sast-scan:
     name: Scan ${{ matrix.target.name }}
     runs-on: ubuntu-latest
-    # Пропускаем отключенные или недоступные проекты
-    if: ${{ matrix.target.enabled && matrix.target.repo != '' }}
     timeout-minutes: 60
 
     strategy:
@@ -27,120 +25,84 @@ jobs:
           - name: "01-Juice-Shop"
             repo: "juice-shop/juice-shop"
             lang: "javascript"
-            enabled: true
           - name: "02-WebGoat"
             repo: "WebGoat/WebGoat"
             lang: "java"
-            enabled: true
           - name: "03-PyGoat"
             repo: "adeyosemanputra/pygoat"
             lang: "python"
-            enabled: true
           - name: "04-Vulnshop"
             repo: "dev-abhrajit/VulnShop"
             lang: "javascript"
-            enabled: true
           - name: "05-Vuln-Bookstore"
             repo: "tobiasbruss/vulnerable-repo"
             lang: "java"
-            enabled: true
           - name: "06-DVNA"
             repo: "appsecco/dvna"
             lang: "javascript"
-            enabled: true
           - name: "07-NodeGoat"
             repo: "OWASP/NodeGoat"
             lang: "javascript"
-            enabled: true
           - name: "08-IWA"
             repo: "fortify/IWA-Java"
             lang: "java"
-            enabled: true
-          - name: "09-DVMA-mysql"
-            repo: ""
-            enabled: false
           - name: "10-VulnerableApp"
             repo: "SasanLabs/VulnerableApp"
             lang: "java"
-            enabled: true
           - name: "11-PyGoat-SQLi-XSS"
             repo: "adeyosemanputra/pygoat"
             lang: "python"
-            enabled: true
           - name: "12-Vulnerable-Flask-App"
             repo: "videvelopers/Vulnerable-Flask-App"
             lang: "python"
-            enabled: true
           - name: "13-Vulnerable-API"
             repo: "mattvaldes/vulnerable-api"
             lang: "python"
-            enabled: true
           - name: "14-DjangoGoat"
             repo: "miguelfreitas93/DjangoGoat"
             lang: "python"
-            enabled: true
           - name: "15-Goof"
             repo: "snyk-labs/nodejs-goof"
             lang: "javascript"
-            enabled: true
           - name: "16-Vulnerable-Web-App"
             repo: "nr-yolo/Vulnshop"
             lang: "javascript"
-            enabled: true
           - name: "17-Vulnerable-JavaScript"
             repo: "EyalSec/vulnerable-javascript"
             lang: "javascript"
-            enabled: true
-          - name: "18-Vulnerable-React-App"
-            repo: ""
-            enabled: false
           - name: "19-VulnerableApp-Spring"
             repo: "SasanLabs/VulnerableApp"
             lang: "java"
-            enabled: true
           - name: "20-Vulnado"
             repo: "vulnerable-code/vulnado"
             lang: "java"
-            enabled: true
           - name: "21-WebGoat-NET"
             repo: "jerryhoff/WebGoat.NET"
             lang: "csharp"
-            enabled: true
           - name: "22-Ticketmagpie"
             repo: "dhatanian/ticketmagpie"
             lang: "java"
-            enabled: true
           - name: "23-DVWS"
             repo: "interference-security/DVWS"
             lang: "javascript"
-            enabled: true
           - name: "24-XVWA"
             repo: "s4n7h0/xvwa"
             lang: "javascript"
-            enabled: true
           - name: "25-Websheep"
             repo: "marmicode/websheep"
             lang: "javascript"
-            enabled: true
           - name: "26-Vulnerable-OTP-App"
             repo: "mddanish/Vulnerable-OTP-Application"
             lang: "javascript"
-            enabled: true
           - name: "27-RailsGoat"
             repo: "OWASP/railsgoat"
             lang: "ruby"
-            enabled: true
-          - name: "28-Vuln-GraphQL-Ruby"
-            repo: ""
-            enabled: false
           - name: "29-DVGA"
             repo: "dolevf/Damn-Vulnerable-GraphQL-Application"
             lang: "javascript"
-            enabled: true
           - name: "30-vAPI"
             repo: "roottusk/vapi"
             lang: "php"
-            enabled: true
 
     steps:
       - name: Checkout Target Repository
@@ -186,7 +148,7 @@ jobs:
             --output=/src/semgrep-results-${{ matrix.target.name }}/semgrep-report.json \
             /src/target-repo || true
 
-
+      # --- UPLOAD ARTIFACTS PER PROJECT ---
       - name: Upload Individual Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -196,6 +158,7 @@ jobs:
             semgrep-results-${{ matrix.target.name }}/*.json
           if-no-files-found: warn
 
+  # --- СБОР ВСЕХ РЕЗУЛЬТАТОВ В ОДИН АРХИВ ---
   bundle-artifacts:
     name: Bundle All Reports
     needs: sast-scan
