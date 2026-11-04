@@ -1,127 +1,140 @@
-
-name: CodeQL External Repository Scan
+name: CodeQL - external supported-language portfolio
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "47 3 * * 1"
 
 permissions:
   contents: read
 
 jobs:
-  codeql-scan:
-    name: Scan ${{ matrix.name }}
+  codeql:
+    name: CodeQL / ${{{{ matrix.project.name }}}}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-
+    timeout-minutes: 60
     strategy:
       fail-fast: false
+      max-parallel: 4
       matrix:
-        include:
-          - name: juice-shop
-            repo: https://github.com/juice-shop/juice-shop.git
-            language: javascript-typescript
-            build_mode: none
+        project:
+          - name: 01-juice-shop
+            repo: "bkimminich/juice-shop"
+            language: "javascript-typescript"
+            build-mode: "none"
+          - name: 02-webgoat
+            repo: "WebGoat/WebGoat"
+            language: "java-kotlin"
+            build-mode: "autobuild"
+          - name: 03-pygoat
+            repo: "adeyosemanputra/pygoat"
+            language: "python"
+            build-mode: "none"
+          - name: 04-vulnshop
+            repo: "dev-abhrajit/VulnShop"
+            language: "javascript-typescript"
+            build-mode: "none"
+          - name: 06-dvna
+            repo: "appsecco/dvna"
+            language: "javascript-typescript"
+            build-mode: "none"
+          - name: 07-nodegoat
+            repo: "OWASP/NodeGoat"
+            language: "javascript-typescript"
+            build-mode: "none"
+          - name: 08-iwa-java
+            repo: "fortify/IWA-Java"
+            language: "java-kotlin"
+            build-mode: "autobuild"
+          - name: 10-vulnerable-java-app
+            repo: "ryanmcmorrowsnyk/vulnerable-java-app"
+            language: "java-kotlin"
+            build-mode: "autobuild"
+          - name: 11-pygoat-sqli-xss
+            repo: "adeyosemanputra/pygoat"
+            language: "python"
+            build-mode: "none"
+          - name: 12-vulnerable-flask-app
+            repo: "videvelopers/Vulnerable-Flask-App"
+            language: "python"
+            build-mode: "none"
+          - name: 13-vulnerable-api
+            repo: "jorritfolmer/vulnerable-api"
+            language: "python"
+            build-mode: "none"
+          - name: 14-djangogoat
+            repo: "red-and-black/DjangoGoat"
+            language: "python"
+            build-mode: "none"
+          - name: 15-goof
+            repo: "snyk/goof"
+            language: "javascript-typescript"
+            build-mode: "none"
+          - name: 17-vulnerable-javascript
+            repo: "EyalSec/vulnerable-javascript"
+            language: "javascript-typescript"
+            build-mode: "none"
+          - name: 19-vulnerableapp-spring
+            repo: "SasanLabs/VulnerableApp"
+            language: "java-kotlin"
+            build-mode: "autobuild"
+          - name: 20-vulnado
+            repo: "vulnerable-code/vulnado"
+            language: "java-kotlin"
+            build-mode: "autobuild"
+          - name: 21-webgoat-net
+            repo: "jerryhoff/WebGoat.NET"
+            language: "csharp"
+            build-mode: "autobuild"
+          - name: 22-ticketmagpie
+            repo: "dhatanian/ticketmagpie"
+            language: "java-kotlin"
+            build-mode: "autobuild"
+          - name: 23-dvws
+            repo: "interference-security/DVWS"
+            language: "javascript-typescript"
+            build-mode: "none"
+          - name: 27-railsgoat
+            repo: "OWASP/railsgoat"
+            language: "ruby"
+            build-mode: "none"
+          - name: 29-damn-vulnerable-graphql
+            repo: "dolevf/Damn-Vulnerable-GraphQL-Application"
+            language: "python"
+            build-mode: "none"
 
-          - name: dvwa
-            repo: https://github.com/digininja/DVWA.git
-            language: php
-            build_mode: none
-
-          - name: webgoat
-            repo: https://github.com/WebGoat/WebGoat.git
-            language: java-kotlin
-            build_mode: autobuild
-
-          - name: nodegoat
-            repo: https://github.com/OWASP/NodeGoat.git
-            language: javascript-typescript
-            build_mode: none
-
-          - name: pygoat
-            repo: https://github.com/adeyosemanputra/pygoat.git
-            language: python
-            build_mode: none
-
-          - name: vulnshop
-            repo: https://github.com/dev-abhrajit/VulnShop.git
-            language: javascript-typescript
-            build_mode: none
-
-          - name: iwa-java
-            repo: https://github.com/fortify/IWA-Java.git
-            language: java-kotlin
-            build_mode: autobuild
-
-          - name: vulnerable-java-app
-            repo: https://github.com/ryanmcmorrowsnyk/vulnerable-java-app.git
-            language: java-kotlin
-            build_mode: autobuild
-
-          - name: vulnbookstore
-            repo: https://github.com/REPLACE_WITH_OWNER/VulnBookStore.git
-            language: javascript-typescript
-            build_mode: none
-
-          - name: vulnerable-graphql
-            repo: https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application.git
-            language: python
-            build_mode: none
 
     steps:
       - name: Checkout workflow repository
         uses: actions/checkout@v4
 
-      - name: Validate repository URL
-        env:
-          REPOSITORY_URL: ${{ matrix.repo }}
-        run: |
-          if [[ "$REPOSITORY_URL" == *"REPLACE_WITH"* ]]; then
-            echo "::error::Missing repository URL for ${{ matrix.name }}"
-            exit 1
-          fi
-
-      - name: Clone target repository
-        env:
-          REPOSITORY_URL: ${{ matrix.repo }}
-        run: |
-          set -euo pipefail
-          git clone --depth 1 "$REPOSITORY_URL" source
+      - name: Checkout external repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.project.repo }}
+          path: source
+          fetch-depth: 1
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: ${{ matrix.language }}
+          languages: ${{ matrix.project.language }}
           source-root: source
-          build-mode: ${{ matrix.build_mode }}
-          debug: true
-
-      - name: Autobuild
-        if: matrix.build_mode == 'autobuild'
-        uses: github/codeql-action/autobuild@v4
+          build-mode: ${{ matrix.project.build-mode }}
+          queries: security-extended
 
       - name: Analyze with CodeQL
         uses: github/codeql-action/analyze@v4
         with:
-          category: "/external/${{ matrix.name }}"
-          output: results
+          category: "/external/${{ matrix.project.name }}"
+          output: codeql-results
           upload: never
 
       - name: Upload SARIF results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: codeql-${{ matrix.name }}
-          path: results/
-          if-no-files-found: ignore
-          retention-days: 14
-
-      - name: Upload CodeQL debug logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-${{ matrix.name }}
-          path: |
-            **/codeql*.log
-            **/codeql-action.log
-          if-no-files-found: ignore
-          retention-days: 7
+          name: codeql-${{ matrix.project.name }}
+          path: codeql-results/
+          if-no-files-found: warn
+          retention-days: 30
