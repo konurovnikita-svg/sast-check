@@ -1,4 +1,4 @@
-name: Multi-Project SAST Pipeline (CodeQL & Semgrep)
+name: SAST  (CodeQL & Semgrep)
 
 on:
   push:
@@ -112,7 +112,7 @@ jobs:
           path: target-repo
           fetch-depth: 1
 
-      # --- CODEQL INIT ---
+
       - name: Initialize CodeQL
         if: matrix.target.lang != 'php'
         uses: github/codeql-action/init@v3
@@ -121,14 +121,14 @@ jobs:
           queries: security-extended
           source-root: target-repo
 
-      # --- AUTOBUILD (для компилируемых языков) ---
+      
       - name: CodeQL Autobuild
         if: matrix.target.lang == 'java' || matrix.target.lang == 'csharp'
         uses: github/codeql-action/autobuild@v3
         with:
           working-directory: target-repo
 
-      # --- CODEQL ANALYZE & EXPORT JSON/SARIF ---
+
       - name: Perform CodeQL Analysis
         if: matrix.target.lang != 'php'
         uses: github/codeql-action/analyze@v3
@@ -136,6 +136,22 @@ jobs:
           category: "/language:${{ matrix.target.lang }}"
           upload: false
           output: codeql-results-${{ matrix.target.name }}
+
+      # --- КОНВЕРТАЦИЯ SARIF В ЧИСТЫЙ JSON ---
+      - name: Convert CodeQL SARIF to JSON
+        if: matrix.target.lang != 'php'
+        run: |
+          mkdir -p json-results-${{ matrix.target.name }}
+          # Ищем сгенерированный SARIF файл
+          SARIF_FILE=$(find codeql-results-${{ matrix.target.name }} -name "*.sarif" | head -n 1)
+          
+          if [ -n "$SARIF_FILE" ] && [ -f "$SARIF_FILE" ]; then
+            # Извлекаем только массив уязвимостей (results)
+            jq '[.runs[].results // []] | add' "$SARIF_FILE" > json-results-${{ matrix.target.name }}/codeql-findings.json
+          else
+            # Если файл пуст или не найден, создаем пустой JSON массив
+            echo "[]" > json-results-${{ matrix.target.name }}/codeql-findings.json
+          fi
 
       # --- SEMGREP SCAN ---
       - name: Run Semgrep
@@ -148,17 +164,17 @@ jobs:
             --output=/src/semgrep-results-${{ matrix.target.name }}/semgrep-report.json \
             /src/target-repo || true
 
-      # --- UPLOAD ARTIFACTS PER PROJECT ---
+
       - name: Upload Individual Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: sast-report-${{ matrix.target.name }}
           path: |
-            codeql-results-${{ matrix.target.name }}/*.sarif
+            json-results-${{ matrix.target.name }}/*.json
             semgrep-results-${{ matrix.target.name }}/*.json
           if-no-files-found: warn
 
-  # --- СБОР ВСЕХ РЕЗУЛЬТАТОВ В ОДИН АРХИВ ---
+  
   bundle-artifacts:
     name: Bundle All Reports
     needs: sast-scan
@@ -175,6 +191,7 @@ jobs:
       - name: Compress to Single Archive
         run: |
           cd all-reports
+          # Создаем один общий ZIP архив
           zip -r ../consolidated-sast-reports.zip .
 
       - name: Upload Consolidated Archive
