@@ -1,78 +1,157 @@
-name: Semgrep SAST Scan
+name: Semgrep - external vulnerable-app portfolio
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main, master ]
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
 
 jobs:
   semgrep:
-    name: Semgrep - ${{ matrix.project.name }}
+    name: Semgrep / ${{{{ matrix.project.name }}}}
+    if: ${{{{ matrix.project.enabled }}}}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
+      max-parallel: 6
       matrix:
         project:
-          - name: juice-shop
-            repo: juice-shop/juice-shop
-          - name: dvwa
-            repo: digininja/DVWA
-          - name: webgoat
-            repo: WebGoat/WebGoat
-          - name: nodegoat
-            repo: OWASP/NodeGoat
-          - name: pygoat
-            repo: adeyosemanputra/pygoat
-          - name: vulnshop
-            repo: nr-yolo/Vulnshop
-          - name: iwa-java
-            repo: fortify/IWA-Java
-          - name: vulnerable-java-app
-            repo: siddharthoak/vulnerable-java-app
-          - name: vulnbookstore
-            repo: tobiasbruss/vulnerable-repo
-          - name: vulnerable-graphql
-            repo: dolevf/Damn-Vulnerable-GraphQL-Application
-          - name: bwapp
-            repo: lelouch-repo/buggy-app
-          - name: railsgoat
-            repo: OWASP/railsgoat
-          - name: vulnerable-flask-app
-            repo: videvelopers/Vulnerable-Flask-App
-          - name: xvwa
-            repo: s4n7h0/xvwa
+          - name: 01-juice-shop
+            repo: "bkimminich/juice-shop"
+            enabled: true
+          - name: 02-webgoat
+            repo: "WebGoat/WebGoat"
+            enabled: true
+          - name: 03-pygoat
+            repo: "adeyosemanputra/pygoat"
+            enabled: true
+          - name: 04-vulnshop
+            repo: "dev-abhrajit/VulnShop"
+            enabled: true
+          - name: 05-vuln-bookstore
+            repo: ""
+            enabled: false
+          - name: 06-dvna
+            repo: "appsecco/dvna"
+            enabled: true
+          - name: 07-nodegoat
+            repo: "OWASP/NodeGoat"
+            enabled: true
+          - name: 08-iwa-java
+            repo: "fortify/IWA-Java"
+            enabled: true
+          - name: 09-dvma-mysql
+            repo: ""
+            enabled: false
+          - name: 10-vulnerable-java-app
+            repo: "ryanmcmorrowsnyk/vulnerable-java-app"
+            enabled: true
+          - name: 11-pygoat-sqli-xss
+            repo: "adeyosemanputra/pygoat"
+            enabled: true
+          - name: 12-vulnerable-flask-app
+            repo: "videvelopers/Vulnerable-Flask-App"
+            enabled: true
+          - name: 13-vulnerable-api
+            repo: "jorritfolmer/vulnerable-api"
+            enabled: true
+          - name: 14-djangogoat
+            repo: "red-and-black/DjangoGoat"
+            enabled: true
+          - name: 15-goof
+            repo: "snyk/goof"
+            enabled: true
+          - name: 16-vulnerable-web-app
+            repo: ""
+            enabled: false
+          - name: 17-vulnerable-javascript
+            repo: "EyalSec/vulnerable-javascript"
+            enabled: true
+          - name: 18-vulnerable-react-app
+            repo: ""
+            enabled: false
+          - name: 19-vulnerableapp-spring
+            repo: "SasanLabs/VulnerableApp"
+            enabled: true
+          - name: 20-vulnado
+            repo: "vulnerable-code/vulnado"
+            enabled: true
+          - name: 21-webgoat-net
+            repo: "jerryhoff/WebGoat.NET"
+            enabled: true
+          - name: 22-ticketmagpie
+            repo: "dhatanian/ticketmagpie"
+            enabled: true
+          - name: 23-dvws
+            repo: "interference-security/DVWS"
+            enabled: true
+          - name: 24-xvwa
+            repo: "s4n7h0/xvwa"
+            enabled: true
+          - name: 25-websheep
+            repo: ""
+            enabled: false
+          - name: 26-vulnerable-otp-application
+            repo: "mddanish/Vulnerable-OTP-Application"
+            enabled: true
+          - name: 27-railsgoat
+            repo: "OWASP/railsgoat"
+            enabled: true
+          - name: 28-vuln-graphql-ruby
+            repo: ""
+            enabled: false
+          - name: 29-damn-vulnerable-graphql
+            repo: "dolevf/Damn-Vulnerable-GraphQL-Application"
+            enabled: true
+          - name: 30-vapi
+            repo: "roottusk/vapi"
+            enabled: true
 
     steps:
-      - name: Checkout ${{ matrix.project.repo }}
+      - name: Validate repository
+        env:
+          REPOSITORY: ${{ matrix.project.repo }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$REPOSITORY" ]]; then
+            echo "::error::Repository URL is not configured for this project."
+            exit 1
+          fi
+
+      - name: Checkout external repository
         uses: actions/checkout@v4
         with:
           repository: ${{ matrix.project.repo }}
-          path: target-repo
+          path: source
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.12"
 
       - name: Install Semgrep
-        run: pip install semgrep
+        run: python -m pip install --upgrade semgrep
 
-      - name: Run Semgrep (JSON)
+      - name: Run Semgrep
+        id: scan
+        working-directory: source
         run: |
-          semgrep scan \
-            --config auto \
-            --config p/owasp-top-ten \
-            --json \
-            --output=semgrep-results.json \
-            target-repo || true
-          # Если файл не создался, создаем пустой, чтобы шаг загрузки не упал
-          if [ ! -f semgrep-results.json ]; then
-            echo '{"results": [], "errors": []}' > semgrep-results.json
-          fi
+          set -euo pipefail
+          semgrep scan \\
+            --config p/default \\
+            --config p/owasp-top-ten \\
+            --json \\
+            --output ../semgrep-results.json
 
       - name: Upload JSON report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: semgrep-json-${{ matrix.project.name }}
+          name: semgrep-${{ matrix.project.name }}
           path: semgrep-results.json
+          if-no-files-found: warn
           retention-days: 30
