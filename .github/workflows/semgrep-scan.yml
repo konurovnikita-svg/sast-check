@@ -1,7 +1,10 @@
-name: Semgrep - external vulnerable-app portfolio
+
+name: Semgrep SAST Scan - 30 Projects
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main, master]
   schedule:
     - cron: "17 3 * * 1"
 
@@ -10,117 +13,108 @@ permissions:
 
 jobs:
   semgrep:
-    name: Semgrep / ${{{{ matrix.project.name }}}}
-    if: ${{{{ matrix.project.enabled }}}}
+    name: "Semgrep - ${{ matrix.project.name }}"
+    if: ${{ matrix.project.enabled }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     strategy:
       fail-fast: false
       max-parallel: 6
       matrix:
         project:
-          - name: 01-juice-shop
-            repo: "bkimminich/juice-shop"
+          - name: "01 Juice Shop"
+            repo: "juice-shop/juice-shop"
             enabled: true
-          - name: 02-webgoat
+          - name: "02 WebGoat"
             repo: "WebGoat/WebGoat"
             enabled: true
-          - name: 03-pygoat
+          - name: "03 PyGoat"
             repo: "adeyosemanputra/pygoat"
             enabled: true
-          - name: 04-vulnshop
+          - name: "04 Vulnshop"
             repo: "dev-abhrajit/VulnShop"
             enabled: true
-          - name: 05-vuln-bookstore
-            repo: ""
-            enabled: false
-          - name: 06-dvna
+          - name: "05 Vuln-bookstore"
+            repo: "tobiasbruss/vulnerable-repo"
+            enabled: true
+          - name: "06 DVNA"
             repo: "appsecco/dvna"
             enabled: true
-          - name: 07-nodegoat
+          - name: "07 NodeGoat"
             repo: "OWASP/NodeGoat"
             enabled: true
-          - name: 08-iwa-java
+          - name: "08 IWA"
             repo: "fortify/IWA-Java"
             enabled: true
-          - name: 09-dvma-mysql
+          - name: "09 DVMA-mysql"
             repo: ""
             enabled: false
-          - name: 10-vulnerable-java-app
-            repo: "ryanmcmorrowsnyk/vulnerable-java-app"
-            enabled: true
-          - name: 11-pygoat-sqli-xss
-            repo: "adeyosemanputra/pygoat"
-            enabled: true
-          - name: 12-vulnerable-flask-app
-            repo: "videvelopers/Vulnerable-Flask-App"
-            enabled: true
-          - name: 13-vulnerable-api
-            repo: "jorritfolmer/vulnerable-api"
-            enabled: true
-          - name: 14-djangogoat
-            repo: "red-and-black/DjangoGoat"
-            enabled: true
-          - name: 15-goof
-            repo: "snyk/goof"
-            enabled: true
-          - name: 16-vulnerable-web-app
-            repo: ""
-            enabled: false
-          - name: 17-vulnerable-javascript
-            repo: "EyalSec/vulnerable-javascript"
-            enabled: true
-          - name: 18-vulnerable-react-app
-            repo: ""
-            enabled: false
-          - name: 19-vulnerableapp-spring
+          - name: "10 VulnerableApp"
             repo: "SasanLabs/VulnerableApp"
             enabled: true
-          - name: 20-vulnado
+          - name: "11 PyGoat SQLi XSS"
+            repo: "adeyosemanputra/pygoat"
+            enabled: true
+          - name: "12 Vulnerable Flask App"
+            repo: "videvelopers/Vulnerable-Flask-App"
+            enabled: true
+          - name: "13 Vulnerable API"
+            repo: "mattvaldes/vulnerable-api"
+            enabled: true
+          - name: "14 DjangoGoat"
+            repo: "miguelfreitas93/DjangoGoat"
+            enabled: true
+          - name: "15 Goof"
+            repo: "snyk-labs/nodejs-goof"
+            enabled: true
+          - name: "16 Vulnerable Web App"
+            repo: "nr-yolo/Vulnshop"
+            enabled: true
+          - name: "17 Vulnerable JavaScript"
+            repo: "EyalSec/vulnerable-javascript"
+            enabled: true
+          - name: "18 Vulnerable React App"
+            repo: ""
+            enabled: false
+          - name: "19 VulnerableApp Spring"
+            repo: "SasanLabs/VulnerableApp"
+            enabled: true
+          - name: "20 Vulnado"
             repo: "vulnerable-code/vulnado"
             enabled: true
-          - name: 21-webgoat-net
+          - name: "21 WebGoat.NET"
             repo: "jerryhoff/WebGoat.NET"
             enabled: true
-          - name: 22-ticketmagpie
+          - name: "22 Ticketmagpie"
             repo: "dhatanian/ticketmagpie"
             enabled: true
-          - name: 23-dvws
+          - name: "23 DVWS"
             repo: "interference-security/DVWS"
             enabled: true
-          - name: 24-xvwa
+          - name: "24 XVWA"
             repo: "s4n7h0/xvwa"
             enabled: true
-          - name: 25-websheep
-            repo: ""
-            enabled: false
-          - name: 26-vulnerable-otp-application
+          - name: "25 Websheep"
+            repo: "marmicode/websheep"
+            enabled: true
+          - name: "26 Vulnerable OTP Application"
             repo: "mddanish/Vulnerable-OTP-Application"
             enabled: true
-          - name: 27-railsgoat
+          - name: "27 RailsGoat"
             repo: "OWASP/railsgoat"
             enabled: true
-          - name: 28-vuln-graphql-ruby
+          - name: "28 Vuln GraphQL Ruby"
             repo: ""
             enabled: false
-          - name: 29-damn-vulnerable-graphql
+          - name: "29 Damn Vulnerable GraphQL"
             repo: "dolevf/Damn-Vulnerable-GraphQL-Application"
             enabled: true
-          - name: 30-vapi
+          - name: "30 vAPI"
             repo: "roottusk/vapi"
             enabled: true
 
     steps:
-      - name: Validate repository
-        env:
-          REPOSITORY: ${{ matrix.project.repo }}
-        run: |
-          set -euo pipefail
-          if [[ -z "$REPOSITORY" ]]; then
-            echo "::error::Repository URL is not configured for this project."
-            exit 1
-          fi
-
       - name: Checkout external repository
         uses: actions/checkout@v4
         with:
@@ -134,20 +128,21 @@ jobs:
           python-version: "3.12"
 
       - name: Install Semgrep
-        run: python -m pip install --upgrade semgrep
+        run: |
+          python -m pip install --upgrade semgrep
 
       - name: Run Semgrep
-        id: scan
         working-directory: source
         run: |
           set -euo pipefail
-          semgrep scan \\
-            --config p/default \\
-            --config p/owasp-top-ten \\
-            --json \\
+
+          semgrep scan \
+            --config p/default \
+            --config p/owasp-top-ten \
+            --json \
             --output ../semgrep-results.json
 
-      - name: Upload JSON report
+      - name: Upload Semgrep JSON
         if: always()
         uses: actions/upload-artifact@v4
         with:
