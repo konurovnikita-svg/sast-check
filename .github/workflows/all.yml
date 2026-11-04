@@ -1,0 +1,222 @@
+name: Multi-Project SAST Pipeline (CodeQL & Semgrep)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  sast-scan:
+    name: Scan ${{ matrix.target.name }}
+    runs-on: ubuntu-latest
+    # Пропускаем отключенные или недоступные проекты
+    if: ${{ matrix.target.enabled && matrix.target.repo != '' }}
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - name: "01-Juice-Shop"
+            repo: "juice-shop/juice-shop"
+            lang: "javascript"
+            enabled: true
+          - name: "02-WebGoat"
+            repo: "WebGoat/WebGoat"
+            lang: "java"
+            enabled: true
+          - name: "03-PyGoat"
+            repo: "adeyosemanputra/pygoat"
+            lang: "python"
+            enabled: true
+          - name: "04-Vulnshop"
+            repo: "dev-abhrajit/VulnShop"
+            lang: "javascript"
+            enabled: true
+          - name: "05-Vuln-Bookstore"
+            repo: "tobiasbruss/vulnerable-repo"
+            lang: "java"
+            enabled: true
+          - name: "06-DVNA"
+            repo: "appsecco/dvna"
+            lang: "javascript"
+            enabled: true
+          - name: "07-NodeGoat"
+            repo: "OWASP/NodeGoat"
+            lang: "javascript"
+            enabled: true
+          - name: "08-IWA"
+            repo: "fortify/IWA-Java"
+            lang: "java"
+            enabled: true
+          - name: "09-DVMA-mysql"
+            repo: ""
+            enabled: false
+          - name: "10-VulnerableApp"
+            repo: "SasanLabs/VulnerableApp"
+            lang: "java"
+            enabled: true
+          - name: "11-PyGoat-SQLi-XSS"
+            repo: "adeyosemanputra/pygoat"
+            lang: "python"
+            enabled: true
+          - name: "12-Vulnerable-Flask-App"
+            repo: "videvelopers/Vulnerable-Flask-App"
+            lang: "python"
+            enabled: true
+          - name: "13-Vulnerable-API"
+            repo: "mattvaldes/vulnerable-api"
+            lang: "python"
+            enabled: true
+          - name: "14-DjangoGoat"
+            repo: "miguelfreitas93/DjangoGoat"
+            lang: "python"
+            enabled: true
+          - name: "15-Goof"
+            repo: "snyk-labs/nodejs-goof"
+            lang: "javascript"
+            enabled: true
+          - name: "16-Vulnerable-Web-App"
+            repo: "nr-yolo/Vulnshop"
+            lang: "javascript"
+            enabled: true
+          - name: "17-Vulnerable-JavaScript"
+            repo: "EyalSec/vulnerable-javascript"
+            lang: "javascript"
+            enabled: true
+          - name: "18-Vulnerable-React-App"
+            repo: ""
+            enabled: false
+          - name: "19-VulnerableApp-Spring"
+            repo: "SasanLabs/VulnerableApp"
+            lang: "java"
+            enabled: true
+          - name: "20-Vulnado"
+            repo: "vulnerable-code/vulnado"
+            lang: "java"
+            enabled: true
+          - name: "21-WebGoat-NET"
+            repo: "jerryhoff/WebGoat.NET"
+            lang: "csharp"
+            enabled: true
+          - name: "22-Ticketmagpie"
+            repo: "dhatanian/ticketmagpie"
+            lang: "java"
+            enabled: true
+          - name: "23-DVWS"
+            repo: "interference-security/DVWS"
+            lang: "javascript"
+            enabled: true
+          - name: "24-XVWA"
+            repo: "s4n7h0/xvwa"
+            lang: "javascript"
+            enabled: true
+          - name: "25-Websheep"
+            repo: "marmicode/websheep"
+            lang: "javascript"
+            enabled: true
+          - name: "26-Vulnerable-OTP-App"
+            repo: "mddanish/Vulnerable-OTP-Application"
+            lang: "javascript"
+            enabled: true
+          - name: "27-RailsGoat"
+            repo: "OWASP/railsgoat"
+            lang: "ruby"
+            enabled: true
+          - name: "28-Vuln-GraphQL-Ruby"
+            repo: ""
+            enabled: false
+          - name: "29-DVGA"
+            repo: "dolevf/Damn-Vulnerable-GraphQL-Application"
+            lang: "javascript"
+            enabled: true
+          - name: "30-vAPI"
+            repo: "roottusk/vapi"
+            lang: "php"
+            enabled: true
+
+    steps:
+      - name: Checkout Target Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.target.repo }}
+          path: target-repo
+          fetch-depth: 1
+
+      # --- CODEQL INIT ---
+      - name: Initialize CodeQL
+        if: matrix.target.lang != 'php'
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.target.lang }}
+          queries: security-extended
+          source-root: target-repo
+
+      # --- AUTOBUILD (для компилируемых языков) ---
+      - name: CodeQL Autobuild
+        if: matrix.target.lang == 'java' || matrix.target.lang == 'csharp'
+        uses: github/codeql-action/autobuild@v3
+        with:
+          working-directory: target-repo
+
+      # --- CODEQL ANALYZE & EXPORT JSON/SARIF ---
+      - name: Perform CodeQL Analysis
+        if: matrix.target.lang != 'php'
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.target.lang }}"
+          upload: false
+          output: codeql-results-${{ matrix.target.name }}
+
+      # --- SEMGREP SCAN ---
+      - name: Run Semgrep
+        run: |
+          mkdir -p semgrep-results-${{ matrix.target.name }}
+          docker run --rm -v "${{ github.workspace }}:/src" returntocorp/semgrep semgrep scan \
+            --config=p/security-audit \
+            --config=p/owasp-top-ten \
+            --json \
+            --output=/src/semgrep-results-${{ matrix.target.name }}/semgrep-report.json \
+            /src/target-repo || true
+
+
+      - name: Upload Individual Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-report-${{ matrix.target.name }}
+          path: |
+            codeql-results-${{ matrix.target.name }}/*.sarif
+            semgrep-results-${{ matrix.target.name }}/*.json
+          if-no-files-found: warn
+
+  bundle-artifacts:
+    name: Bundle All Reports
+    needs: sast-scan
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-reports
+          pattern: sast-report-*
+          merge-multiple: true
+
+      - name: Compress to Single Archive
+        run: |
+          cd all-reports
+          zip -r ../consolidated-sast-reports.zip .
+
+      - name: Upload Consolidated Archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: consolidated-sast-reports
+          path: consolidated-sast-reports.zip
+          retention-days: 14
