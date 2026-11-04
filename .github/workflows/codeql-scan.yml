@@ -1,4 +1,4 @@
-name: CodeQL - external supported-language portfolio
+name: CodeQL - 30 vulnerable projects
 
 on:
   workflow_dispatch:
@@ -10,7 +10,8 @@ permissions:
 
 jobs:
   codeql:
-    name: CodeQL / ${{{{ matrix.project.name }}}}
+    name: CodeQL / ${{ matrix.project.name }}
+    if: ${{ matrix.project.enabled }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
@@ -19,96 +20,161 @@ jobs:
       matrix:
         project:
           - name: 01-juice-shop
-            repo: "bkimminich/juice-shop"
+            repo: "juice-shop/juice-shop"
+            enabled: true
             language: "javascript-typescript"
             build-mode: "none"
           - name: 02-webgoat
             repo: "WebGoat/WebGoat"
+            enabled: true
             language: "java-kotlin"
             build-mode: "autobuild"
           - name: 03-pygoat
             repo: "adeyosemanputra/pygoat"
+            enabled: true
             language: "python"
             build-mode: "none"
           - name: 04-vulnshop
             repo: "dev-abhrajit/VulnShop"
+            enabled: true
+            language: "javascript-typescript"
+            build-mode: "none"
+          - name: 05-vuln-bookstore
+            repo: "tobiasbruss/vulnerable-repo"
+            enabled: true
             language: "javascript-typescript"
             build-mode: "none"
           - name: 06-dvna
             repo: "appsecco/dvna"
+            enabled: true
             language: "javascript-typescript"
             build-mode: "none"
           - name: 07-nodegoat
             repo: "OWASP/NodeGoat"
+            enabled: true
             language: "javascript-typescript"
             build-mode: "none"
-          - name: 08-iwa-java
+          - name: 08-iwa
             repo: "fortify/IWA-Java"
+            enabled: true
             language: "java-kotlin"
             build-mode: "autobuild"
-          - name: 10-vulnerable-java-app
-            repo: "ryanmcmorrowsnyk/vulnerable-java-app"
+          - name: 09-dvma-mysql
+            repo: ""
+            enabled: false
+            language: ""
+            build-mode: ""
+          - name: 10-vulnerableapp-java
+            repo: "SasanLabs/VulnerableApp"
+            enabled: true
             language: "java-kotlin"
             build-mode: "autobuild"
           - name: 11-pygoat-sqli-xss
             repo: "adeyosemanputra/pygoat"
+            enabled: true
             language: "python"
             build-mode: "none"
           - name: 12-vulnerable-flask-app
             repo: "videvelopers/Vulnerable-Flask-App"
+            enabled: true
             language: "python"
             build-mode: "none"
           - name: 13-vulnerable-api
-            repo: "jorritfolmer/vulnerable-api"
+            repo: "mattvaldes/vulnerable-api"
+            enabled: true
             language: "python"
             build-mode: "none"
-          - name: 14-djangogoat
-            repo: "red-and-black/DjangoGoat"
+          - name: 14-django-goat
+            repo: "miguelfreitas93/DjangoGoat"
+            enabled: true
             language: "python"
             build-mode: "none"
           - name: 15-goof
-            repo: "snyk/goof"
+            repo: "snyk-labs/nodejs-goof"
+            enabled: true
+            language: "javascript-typescript"
+            build-mode: "none"
+          - name: 16-vulnerable-web-app
+            repo: "nr-yolo/Vulnshop"
+            enabled: true
             language: "javascript-typescript"
             build-mode: "none"
           - name: 17-vulnerable-javascript
             repo: "EyalSec/vulnerable-javascript"
+            enabled: true
             language: "javascript-typescript"
             build-mode: "none"
+          - name: 18-vulnerable-react-app
+            repo: ""
+            enabled: false
+            language: ""
+            build-mode: ""
           - name: 19-vulnerableapp-spring
             repo: "SasanLabs/VulnerableApp"
-            language: "java-kotlin"
+            enabled: true
+            language: "java-kotlin,javascript-typescript"
             build-mode: "autobuild"
           - name: 20-vulnado
             repo: "vulnerable-code/vulnado"
+            enabled: true
             language: "java-kotlin"
             build-mode: "autobuild"
           - name: 21-webgoat-net
             repo: "jerryhoff/WebGoat.NET"
+            enabled: true
             language: "csharp"
             build-mode: "autobuild"
           - name: 22-ticketmagpie
             repo: "dhatanian/ticketmagpie"
+            enabled: true
             language: "java-kotlin"
             build-mode: "autobuild"
           - name: 23-dvws
             repo: "interference-security/DVWS"
+            enabled: true
             language: "javascript-typescript"
             build-mode: "none"
+          - name: 24-xvwa
+            repo: "s4n7h0/xvwa"
+            enabled: false
+            language: ""
+            build-mode: ""
+          - name: 25-websheep
+            repo: "marmicode/websheep"
+            enabled: true
+            language: "javascript-typescript"
+            build-mode: "none"
+          - name: 26-vulnerable-otp-application
+            repo: "mddanish/Vulnerable-OTP-Application"
+            enabled: false
+            language: ""
+            build-mode: ""
           - name: 27-railsgoat
             repo: "OWASP/railsgoat"
+            enabled: true
             language: "ruby"
             build-mode: "none"
+          - name: 28-vuln-graphql-ruby
+            repo: ""
+            enabled: false
+            language: ""
+            build-mode: ""
           - name: 29-damn-vulnerable-graphql
             repo: "dolevf/Damn-Vulnerable-GraphQL-Application"
+            enabled: true
             language: "python"
             build-mode: "none"
-
+          - name: 30-vapi
+            repo: "roottusk/vapi"
+            enabled: false
+            language: ""
+            build-mode: ""
 
     steps:
       - name: Checkout workflow repository
         uses: actions/checkout@v4
 
-      - name: Checkout external repository
+      - name: Checkout target repository
         uses: actions/checkout@v4
         with:
           repository: ${{ matrix.project.repo }}
