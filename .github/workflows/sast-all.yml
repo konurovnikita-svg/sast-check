@@ -112,7 +112,7 @@ jobs:
             semgrep: true
             codeql_language: python
           - project: Vuln-GraphQL-Ruby
-            repo: https://github.com/OWASP/vulnerable-graphql-ruby.git
+            repo: https://github.com/rmosolgo/graphql-ruby.git
             semgrep: true
             codeql_language: ruby
           - project: IWA
