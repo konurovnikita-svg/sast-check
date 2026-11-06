@@ -1,4 +1,4 @@
-name: Setup Folders and Run SAST (30 Benchmarks)
+name: Setup Folders and Run SAST
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create folder structure for all 30 benchmark projects
+      - name: Create folder structure
         run: |
           projects=(
             "OWASP-Juice-Shop" "OWASP-WebGoat" "OWASP-NodeGoat" "DVWA" "OWASP-Benchmark-Java"
@@ -28,22 +28,20 @@ jobs:
             "Goof" "Vulnerable-React-App" "Vulnerable-API" "DjangoGoat" "Vuln-Bookstore"
           )
           for proj in "${projects[@]}"; do
-            mkdir -p "$proj/default"
-            mkdir -p "$proj/semgrep"
-            mkdir -p "$proj/codeql"
+            mkdir -p "$proj/default" "$proj/semgrep" "$proj/codeql"
             touch "$proj/default/.gitkeep" "$proj/semgrep/.gitkeep" "$proj/codeql/.gitkeep"
           done
 
-      - name: Commit and push folder structure
+      - name: Commit folder structure
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-create folder structure for 30 benchmark apps"
-          git push || echo "Nothing to push"
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-create folder structure"
+          git push || true
 
   # ==========================================
-  # ЗАДАЧА 2: Запуск SAST (Semgrep и CodeQL)
+  # ЗАДАЧА 2: Клонирование (во временную папку), SAST и сохранение результатов
   # ==========================================
   run-sast:
     needs: setup-folders
@@ -51,91 +49,149 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project:
-          - "OWASP-Juice-Shop"
-          - "OWASP-WebGoat"
-          - "OWASP-NodeGoat"
-          - "DVWA"
-          - "OWASP-Benchmark-Java"
-          - "VulnBookStore"
-          - "VulnShop-Django"
-          - "PyGoat"
-          - "VAmPI"
-          - "DVGA"
-          - "VulnerableApp"
-          - "OWASP-Mutillidae"
-          - "DVWS"
-          - "XVWA"
-          - "bWAPP"
-          - "Vulnado"
-          - "WebGoat.NET"
-          - "RailsGoat"
-          - "TicketMagpie"
-          - "Vulnerable-OTP-App"
-          - "Damn-Vulnerable-Flask-App"
-          - "DVPWA"
-          - "Vuln-GraphQL-Ruby"
-          - "IWA"
-          - "DVNA"
-          - "Goof"
-          - "Vulnerable-React-App"
-          - "Vulnerable-API"
-          - "DjangoGoat"
-          - "Vuln-Bookstore"
+        include:
+          - project: "OWASP-Juice-Shop"
+            repo: "https://github.com/juice-shop/juice-shop.git"
+          - project: "OWASP-WebGoat"
+            repo: "https://github.com/WebGoat/WebGoat.git"
+          - project: "OWASP-NodeGoat"
+            repo: "https://github.com/OWASP/NodeGoat.git"
+          - project: "DVWA"
+            repo: "https://github.com/digininja/DVWA.git"
+          - project: "OWASP-Benchmark-Java"
+            repo: "https://github.com/OWASP-Benchmark/BenchmarkJava.git"
+          - project: "VulnBookStore"
+            repo: "https://github.com/tobiasbruss/vulnerable-repo.git" 
+          - project: "VulnShop-Django"
+            repo: "https://github.com/laugiov/code-safety.git"
+          - project: "PyGoat"
+            repo: "https://github.com/adeyosemanputra/pygoat.git"
+          - project: "VAmPI"
+            repo: "https://github.com/erev0s/VAmPI.git"
+          - project: "DVGA"
+            repo: "https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application.git"
+          - project: "VulnerableApp"
+            repo: "https://github.com/SasanLabs/VulnerableApp.git"
+          - project: "OWASP-Mutillidae"
+            repo: "https://github.com/webpwnized/mutillidae.git"
+          - project: "DVWS"
+            repo: "https://github.com/interference-security/DVWS.git"
+          - project: "XVWA"
+            repo: "https://github.com/s4mur4i/XVWA.git"
+          - project: "bWAPP"
+            repo: "https://github.com/some-user/bWAPP.git" # Заглушка
+          - project: "Vulnado"
+            repo: "https://github.com/OWASP/Vulnerable-Web-Application.git"
+          - project: "WebGoat.NET"
+            repo: "https://github.com/jerryhoff/WebGoat.NET.git"
+          - project: "RailsGoat"
+            repo: "https://github.com/OWASP/railsgoat.git"
+          - project: "TicketMagpie"
+            repo: "https://github.com/OWASP/ticketmagpie.git"
+          - project: "Vulnerable-OTP-App"
+            repo: "https://github.com/OWASP/vulnerable-otp-application.git"
+          - project: "Damn-Vulnerable-Flask-App"
+            repo: "https://github.com/realvuln/realvuln-damn-vulnerable-flask-application.git"
+          - project: "DVPWA"
+            repo: "https://github.com/realvuln/realvuln-dvpwa.git"
+          - project: "Vuln-GraphQL-Ruby"
+            repo: "https://github.com/OWASP/vulnerable-graphql-ruby.git"
+          - project: "IWA"
+            repo: "https://github.com/OWASP/IWA.git"
+          - project: "DVNA"
+            repo: "https://github.com/appsecco/dvna.git"
+          - project: "Goof"
+            repo: "https://github.com/snyk/goof.git"
+          - project: "Vulnerable-React-App"
+            repo: "https://github.com/some-user/vulnerable-react-app.git" # Заглушка
+          - project: "Vulnerable-API"
+            repo: "https://github.com/some-user/vulnerable-api.git" # Заглушка
+          - project: "DjangoGoat"
+            repo: "https://github.com/some-user/djangoat.git" # Заглушка
+          - project: "Vuln-Bookstore"
+            repo: "https://github.com/some-user/vuln-bookstore.git" # Заглушка
+
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (Твой репозиторий с папками)
         uses: actions/checkout@v4
 
-      # ----------------------------------------
-      # SEMGREP
-      # ----------------------------------------
+      # 1. СКАЧИВАЕМ КОД ВРЕМЕННО
+      - name: Clone target repository temporarily
+        run: |
+          APP="${{ matrix.project }}"
+          # Скачиваем код приложения во временную системную папку
+          git clone --depth 1 ${{ matrix.repo }} /tmp/scan_target || echo "Repo unavailable"
+          
+          # Если код скачался, копируем его в рабочую папку для CodeQL (он не умеет работать с /tmp)
+          if [ -d /tmp/scan_target ]; then
+            mkdir -p "$APP/src"
+            cp -r /tmp/scan_target/* "$APP/src/" 2>/dev/null || true
+            cp -r /tmp/scan_target/.[!.]* "$APP/src/" 2>/dev/null || true
+            rm -rf "$APP/src/.git"
+          fi
+
+      # 2. ЗАПОЛНЯЕМ ПАПКУ DEFAULT ЭТАЛОНАМИ
+      - name: Populate default (Ground Truth)
+        run: |
+          APP="${{ matrix.project }}"
+          if [ "$APP" = "OWASP-Benchmark-Java" ]; then
+            echo "Скачиваем официальный эталон для OWASP Benchmark..."
+            curl -sL -o "$APP/default/expectedresults.csv" "https://raw.githubusercontent.com/OWASP-Benchmark/BenchmarkJava/master/expectedresults-1.2.csv" || true
+          else
+            echo "Создаем шаблон эталона для $APP..."
+            echo "CWE,File,Line,Type" > "$APP/default/ground_truth.csv"
+            echo "CWE-89,src/main.js,10,vuln" >> "$APP/default/ground_truth.csv"
+            echo "Шаблон создан. Вам нужно вписать сюда реальные уязвимости для $APP." > "$APP/default/README.md"
+          fi
+
+      # 3. ЗАПУСКАЕМ SEMGREP
       - name: Install Semgrep
         run: pip install semgrep
 
-      - name: Run Semgrep on ${{ matrix.project }}
+      - name: Run Semgrep
         run: |
           APP="${{ matrix.project }}"
-          semgrep scan --config auto --json --output semgrep-result.json "$APP" || true
+          # || true защищает от падения из-за найденных уязвимостей
+          semgrep scan --config auto --json --output "$APP/semgrep/findings.json" "$APP/src" || true
 
-      - name: Save Semgrep Result
-        run: |
-          APP="${{ matrix.project }}"
-          mv semgrep-result.json "$APP/semgrep/findings.json"
-
-      # ----------------------------------------
-      # CODEQL
-      # ----------------------------------------
-      # ВАЖНО: CodeQL требует указания языка. 
-      # Для универсальности можно использовать `language: [javascript, python, java, csharp, ruby]`
-      # но это может замедлить анализ. Если проект на конкретном языке, укажите его.
+      # 4. ЗАПУСКАЕМ CODEQL
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: javascript, python, java, csharp, ruby
           config: |
             paths:
-              - ${{ matrix.project }}
-            paths-ignore:
-              - '**/test/**'
-              - '**/node_modules/**'
+              - ${{ matrix.project }}/src
+        continue-on-error: true
 
       - name: Autobuild CodeQL
         uses: github/codeql-action/autobuild@v3
+        continue-on-error: true
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           output: ${{ matrix.project }}/codeql
           upload: false
+        continue-on-error: true
 
-      # ----------------------------------------
-      # СОХРАНЕНИЕ РЕЗУЛЬТАТОВ В GIT
-      # ----------------------------------------
-      - name: Commit and Push Results
+      # 5. ОЧИЩАЕМ ИСХОДНИКИ И КОММИТИМ ТОЛЬКО РЕЗУЛЬТАТЫ
+      - name: Clean up and Commit Results
+        if: always()
         run: |
           APP="${{ matrix.project }}"
+          
+          # ВАЖНО: Удаляем исходный код перед коммитом, чтобы репа не распухла
+          rm -rf "$APP/src"
+          
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add "$APP/semgrep/" "$APP/codeql/"
-          git diff --quiet && git diff --staged --quiet || git commit -m "SAST results for $APP"
-          git push || echo "Push failed for $APP, but continuing"
+          
+          # Добавляем ТОЛЬКО папки с результатами и эталонами
+          git add "$APP/semgrep/" "$APP/codeql/" "$APP/default/" || true
+          
+          if ! git diff --cached --quiet; then
+            git commit -m "SAST results and default for $APP"
+            git pull --rebase origin main || true
+            git push || git push || echo "Push failed for $APP, continuing"
+          fi
