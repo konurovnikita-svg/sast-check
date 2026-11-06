@@ -8,9 +8,6 @@ permissions:
   security-events: write
 
 jobs:
-  # ==========================================
-  # ЗАДАЧА 1: Создание структуры папок
-  # ==========================================
   setup-folders:
     runs-on: ubuntu-latest
     steps:
@@ -40,9 +37,6 @@ jobs:
           git diff --quiet && git diff --staged --quiet || git commit -m "Auto-create folder structure"
           git push || true
 
-  # ==========================================
-  # ЗАДАЧА 2: Клонирование, SAST и сохранение
-  # ==========================================
   run-sast:
     needs: setup-folders
     runs-on: ubuntu-latest
@@ -50,92 +44,111 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Используем РЕАЛЬНЫЕ ссылки на GitHub репозитории
           - project: "OWASP-Juice-Shop"
             repo: "https://github.com/juice-shop/juice-shop.git"
+            language: "javascript"
           - project: "OWASP-WebGoat"
             repo: "https://github.com/WebGoat/WebGoat.git"
+            language: "java"
           - project: "OWASP-NodeGoat"
             repo: "https://github.com/OWASP/NodeGoat.git"
+            language: "javascript"
           - project: "DVWA"
             repo: "https://github.com/digininja/DVWA.git"
+            language: "php"
           - project: "OWASP-Benchmark-Java"
             repo: "https://github.com/OWASP-Benchmark/BenchmarkJava.git"
+            language: "java"
           - project: "VulnBookStore"
-            repo: "https://github.com/Defcon2019/vulnerable-repo.git" # Пример реального уязвимого магазина
+            repo: "https://github.com/Defcon2019/vulnerable-repo.git"
+            language: "java"
           - project: "VulnShop-Django"
             repo: "https://github.com/laugiov/code-safety.git"
+            language: "python"
           - project: "PyGoat"
             repo: "https://github.com/adeyosemanputra/pygoat.git"
+            language: "python"
           - project: "VAmPI"
             repo: "https://github.com/erev0s/VAmPI.git"
+            language: "python"
           - project: "DVGA"
             repo: "https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application.git"
+            language: "python"
           - project: "VulnerableApp"
             repo: "https://github.com/SasanLabs/VulnerableApp.git"
+            language: "java"
           - project: "OWASP-Mutillidae"
             repo: "https://github.com/webpwnized/mutillidae.git"
+            language: "php"
           - project: "DVWS"
             repo: "https://github.com/interference-security/DVWS.git"
+            language: "php"
           - project: "XVWA"
             repo: "https://github.com/s4mur4i/XVWA.git"
+            language: "php"
           - project: "bWAPP"
-            repo: "https://github.com/yeswehack/bWAPP.git" # Реальная ссылка
+            repo: "https://github.com/yeswehack/bWAPP.git"
+            language: "php"
           - project: "Vulnado"
             repo: "https://github.com/OWASP/Vulnerable-Web-Application.git"
+            language: "java"
           - project: "WebGoat.NET"
             repo: "https://github.com/jerryhoff/WebGoat.NET.git"
+            language: "csharp"
           - project: "RailsGoat"
             repo: "https://github.com/OWASP/railsgoat.git"
+            language: "ruby"
           - project: "TicketMagpie"
             repo: "https://github.com/OWASP/ticketmagpie.git"
+            language: "java"
           - project: "Vulnerable-OTP-App"
             repo: "https://github.com/OWASP/vulnerable-otp-application.git"
+            language: "python"
           - project: "Damn-Vulnerable-Flask-App"
             repo: "https://github.com/realvuln/realvuln-damn-vulnerable-flask-application.git"
+            language: "python"
           - project: "DVPWA"
             repo: "https://github.com/realvuln/realvuln-dvpwa.git"
+            language: "python"
           - project: "Vuln-GraphQL-Ruby"
             repo: "https://github.com/OWASP/vulnerable-graphql-ruby.git"
+            language: "ruby"
           - project: "IWA"
             repo: "https://github.com/OWASP/IWA.git"
+            language: "javascript"
           - project: "DVNA"
             repo: "https://github.com/appsecco/dvna.git"
+            language: "javascript"
           - project: "Goof"
             repo: "https://github.com/snyk/goof.git"
+            language: "javascript"
           - project: "Vulnerable-React-App"
-            repo: "https://github.com/yeswehack/vulnerable-code-snippets.git" # Заменил на реальный
+            repo: "https://github.com/yeswehack/vulnerable-code-snippets.git"
+            language: "javascript"
           - project: "Vulnerable-API"
-            repo: "https://github.com/OWASP/API-Security.git" # Заменил на реальный
+            repo: "https://github.com/DevCyberNova/vulnerable-api.git"
+            language: "javascript"
           - project: "DjangoGoat"
-            repo: "https://github.com/adeyosemanputra/pygoat.git" # Если нет DjangoGoat, используем PyGoat
+            repo: "https://github.com/adeyosemanputra/pygoat.git"
+            language: "python"
           - project: "Vuln-Bookstore"
             repo: "https://github.com/Defcon2019/vulnerable-repo.git"
+            language: "java"
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. КЛОНИРОВАНИЕ
       - name: Clone target repository
         run: |
           APP="${{ matrix.project }}"
-          echo "Клонируем $APP из ${{ matrix.repo }}"
           if git clone --depth 1 ${{ matrix.repo }} /tmp/scan_target; then
             mkdir -p "$APP/src"
             cp -r /tmp/scan_target/* "$APP/src/" 2>/dev/null || true
             cp -r /tmp/scan_target/.[!.]* "$APP/src/" 2>/dev/null || true
             rm -rf "$APP/src/.git"
-            echo "Успешно склонировано."
-          else
-            echo "ОШИБКА: Не удалось склонировать репозиторий. Проверьте ссылку." > "$APP/src/error.txt"
-            echo "ОШИБКА: Не удалось склонировать репозиторий. Проверьте ссылку." > "$APP/semgrep/error.txt"
-            echo "ОШИБКА: Не удалось склонировать репозиторий. Проверьте ссылку." > "$APP/codeql/error.txt"
-            echo "Клонирование провалено, пропускаем сканирование."
-            exit 0 # Не роняем пайплайн, но завершаем этот шаг
           fi
 
-      # 2. ЭТАЛОН (DEFAULT)
       - name: Populate default
         run: |
           APP="${{ matrix.project }}"
@@ -144,10 +157,8 @@ jobs:
           else
             echo "CWE,File,Line,Type" > "$APP/default/ground_truth.csv"
             echo "CWE-89,src/main.js,10,vuln" >> "$APP/default/ground_truth.csv"
-            echo "Шаблон создан. Заполните реальными уязвимостями." > "$APP/default/README.md"
           fi
 
-      # 3. SEMGREP
       - name: Install Semgrep
         run: pip install semgrep
 
@@ -155,24 +166,20 @@ jobs:
         if: success()
         run: |
           APP="${{ matrix.project }}"
-          # Запускаем сканирование (|| true чтобы не падать при находках)
-          semgrep scan --config auto --json --output "$APP/semgrep/findings.json" "$APP/src" || true
+          if [ -d "$APP/src" ]; then
+            semgrep scan --config auto --json --output "$APP/semgrep/${APP}_semgrep.json" "$APP/src" || true
+          fi
 
-      # 4. CODEQL
       - name: Initialize CodeQL
         if: success()
         uses: github/codeql-action/init@v3
         with:
-          languages: javascript, python, java, csharp, ruby
+          languages: ${{ matrix.language }}
+          build-mode: none
           config: |
             paths:
               - ${{ matrix.project }}/src
-        continue-on-error: true # Если язык не поддерживается, идем дальше
-
-      - name: Autobuild CodeQL
-        if: success()
-        uses: github/codeql-action/autobuild@v3
-        continue-on-error: true # Если сборка Java не удалась, идем дальше
+        continue-on-error: true
 
       - name: Perform CodeQL Analysis
         if: success()
@@ -182,29 +189,15 @@ jobs:
           upload: false
         continue-on-error: true
 
-      # 5. ОЧИСТКА И КОММИТ
       - name: Clean up and Commit Results
         if: always()
         run: |
           APP="${{ matrix.project }}"
-          
-          # Если сканирование не удалось, создаем файлы-заглушки, чтобы папки не были пустыми
-          if [ ! -f "$APP/semgrep/findings.json" ] && [ ! -f "$APP/semgrep/error.txt" ]; then
-            echo "Semgrep не создал файл результатов (возможно, не было кода)." > "$APP/semgrep/error.txt"
-          fi
-          
-          if [ ! -d "$APP/codeql" ] || [ -z "$(ls -A "$APP/codeql")" ]; then
-             mkdir -p "$APP/codeql"
-             echo "CodeQL не смог сгенерировать результаты (вероятно, ошибка сборки или неподдерживаемый язык)." > "$APP/codeql/error.txt"
-          fi
-
-          # Удаляем исходный код, чтобы не засорять репозиторий
           rm -rf "$APP/src"
           
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Добавляем только результаты и эталоны
           git add "$APP/semgrep/" "$APP/codeql/" "$APP/default/" || true
           
           if ! git diff --cached --quiet; then
