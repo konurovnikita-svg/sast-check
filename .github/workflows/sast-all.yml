@@ -63,13 +63,13 @@ jobs:
             repo: "https://github.com/interference-security/DVWS.git"
             codeql_language: ""
           - project: "XVWA"
-            repo: "https://github.com/s4mur4i/XVWA.git"
+            repo: "https://github.com/s4n7h0/xvwa.git"
             codeql_language: ""
           - project: "bWAPP"
-            repo: "https://github.com/yeswehack/bWAPP.git"
+            repo: "https://github.com/jehy-security/bwapp.git"
             codeql_language: ""
           - project: "Vulnado"
-            repo: "https://github.com/OWASP/Vulnerable-Web-Application.git"
+            repo: "https://github.com/ScaleSec/vulnado.git"
             codeql_language: "java-kotlin"
           - project: "WebGoat.NET"
             repo: "https://github.com/jerryhoff/WebGoat.NET.git"
@@ -78,16 +78,16 @@ jobs:
             repo: "https://github.com/OWASP/railsgoat.git"
             codeql_language: "ruby"
           - project: "TicketMagpie"
-            repo: "https://github.com/OWASP/ticketmagpie.git"
+            repo: "https://github.com/dhatanian/ticketmagpie.git"
             codeql_language: "java-kotlin"
           - project: "Vulnerable-OTP-App"
-            repo: "https://github.com/OWASP/vulnerable-otp-application.git"
-            codeql_language: "python"
+            repo: "https://github.com/mddanish/Vulnerable-OTP-Application.git"
+            codeql_language: ""
           - project: "Damn-Vulnerable-Flask-App"
             repo: "https://github.com/realvuln/realvuln-damn-vulnerable-flask-application.git"
             codeql_language: "python"
           - project: "DVPWA"
-            repo: "https://github.com/realvuln/realvuln-dvpwa.git"
+            repo: "https://github.com/anxolerd/dvpwa.git"
             codeql_language: "python"
           - project: "Vuln-GraphQL-Ruby"
             repo: "https://github.com/OWASP/vulnerable-graphql-ruby.git"
@@ -149,6 +149,16 @@ jobs:
 
           git clone --depth 1 --no-tags "$REPO" "$APP/src"
           rm -rf "$APP/src/.git"
+        continue-on-error: true
+
+      - name: Report clone failure
+        if: ${{ steps.clone.outcome != 'success' }}
+        env:
+          APP: ${{ matrix.project }}
+          REPO: ${{ matrix.repo }}
+        run: |
+          echo "## $APP: clone failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Could not clone $REPO. Semgrep and CodeQL were skipped; any previous reports are preserved." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up Python for Semgrep
         if: ${{ steps.clone.outcome == 'success' }}
@@ -204,9 +214,9 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.codeql_language }}
-          # none поддерживается для Java и C#, а также для интерпретируемых языков.
-          # Это позволяет не зависеть от успешности autobuild у учебных приложений.
-          build-mode: none
+          # Java/Kotlin и C# — компилируемые языки: им нужен autobuild.
+          # Для интерпретируемых языков используем none.
+          build-mode: ${{ (matrix.codeql_language == 'java-kotlin' || matrix.codeql_language == 'csharp') && 'autobuild' || 'none' }}
           source-root: ${{ matrix.project }}/src
         continue-on-error: true
 
