@@ -11,9 +11,7 @@ jobs:
   setup-folders:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Create folder structure
         run: |
           projects=(
@@ -28,11 +26,10 @@ jobs:
             mkdir -p "$proj/default" "$proj/semgrep" "$proj/codeql"
             touch "$proj/default/.gitkeep" "$proj/semgrep/.gitkeep" "$proj/codeql/.gitkeep"
           done
-
       - name: Commit folder structure
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git diff --quiet && git diff --staged --quiet || git commit -m "Auto-create folder structure"
           git push || true
@@ -47,97 +44,126 @@ jobs:
           - project: "OWASP-Juice-Shop"
             repo: "https://github.com/juice-shop/juice-shop.git"
             language: "javascript"
+            build_mode: "none"
           - project: "OWASP-WebGoat"
             repo: "https://github.com/WebGoat/WebGoat.git"
             language: "java"
+            build_mode: "autobuild"
           - project: "OWASP-NodeGoat"
             repo: "https://github.com/OWASP/NodeGoat.git"
             language: "javascript"
+            build_mode: "none"
           - project: "DVWA"
             repo: "https://github.com/digininja/DVWA.git"
             language: "php"
+            build_mode: "none"
           - project: "OWASP-Benchmark-Java"
             repo: "https://github.com/OWASP-Benchmark/BenchmarkJava.git"
             language: "java"
+            build_mode: "autobuild"
           - project: "VulnBookStore"
             repo: "https://github.com/Defcon2019/vulnerable-repo.git"
             language: "java"
+            build_mode: "autobuild"
           - project: "VulnShop-Django"
             repo: "https://github.com/laugiov/code-safety.git"
             language: "python"
+            build_mode: "none"
           - project: "PyGoat"
             repo: "https://github.com/adeyosemanputra/pygoat.git"
             language: "python"
+            build_mode: "none"
           - project: "VAmPI"
             repo: "https://github.com/erev0s/VAmPI.git"
             language: "python"
+            build_mode: "none"
           - project: "DVGA"
             repo: "https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application.git"
             language: "python"
+            build_mode: "none"
           - project: "VulnerableApp"
             repo: "https://github.com/SasanLabs/VulnerableApp.git"
             language: "java"
+            build_mode: "autobuild"
           - project: "OWASP-Mutillidae"
             repo: "https://github.com/webpwnized/mutillidae.git"
             language: "php"
+            build_mode: "none"
           - project: "DVWS"
             repo: "https://github.com/interference-security/DVWS.git"
             language: "php"
+            build_mode: "none"
           - project: "XVWA"
             repo: "https://github.com/s4mur4i/XVWA.git"
             language: "php"
+            build_mode: "none"
           - project: "bWAPP"
             repo: "https://github.com/yeswehack/bWAPP.git"
             language: "php"
+            build_mode: "none"
           - project: "Vulnado"
             repo: "https://github.com/OWASP/Vulnerable-Web-Application.git"
             language: "java"
+            build_mode: "autobuild"
           - project: "WebGoat.NET"
             repo: "https://github.com/jerryhoff/WebGoat.NET.git"
             language: "csharp"
+            build_mode: "autobuild"
           - project: "RailsGoat"
             repo: "https://github.com/OWASP/railsgoat.git"
             language: "ruby"
+            build_mode: "none"
           - project: "TicketMagpie"
             repo: "https://github.com/OWASP/ticketmagpie.git"
             language: "java"
+            build_mode: "autobuild"
           - project: "Vulnerable-OTP-App"
             repo: "https://github.com/OWASP/vulnerable-otp-application.git"
             language: "python"
+            build_mode: "none"
           - project: "Damn-Vulnerable-Flask-App"
             repo: "https://github.com/realvuln/realvuln-damn-vulnerable-flask-application.git"
             language: "python"
+            build_mode: "none"
           - project: "DVPWA"
             repo: "https://github.com/realvuln/realvuln-dvpwa.git"
             language: "python"
+            build_mode: "none"
           - project: "Vuln-GraphQL-Ruby"
             repo: "https://github.com/OWASP/vulnerable-graphql-ruby.git"
             language: "ruby"
+            build_mode: "none"
           - project: "IWA"
             repo: "https://github.com/OWASP/IWA.git"
             language: "javascript"
+            build_mode: "none"
           - project: "DVNA"
             repo: "https://github.com/appsecco/dvna.git"
             language: "javascript"
+            build_mode: "none"
           - project: "Goof"
             repo: "https://github.com/snyk/goof.git"
             language: "javascript"
+            build_mode: "none"
           - project: "Vulnerable-React-App"
-            repo: "https://github.com/yeswehack/vulnerable-code-snippets.git"
+            repo: "https://github.com/DevCyberNova/vulnerable-react-app.git"
             language: "javascript"
+            build_mode: "none"
           - project: "Vulnerable-API"
             repo: "https://github.com/DevCyberNova/vulnerable-api.git"
             language: "javascript"
+            build_mode: "none"
           - project: "DjangoGoat"
             repo: "https://github.com/adeyosemanputra/pygoat.git"
             language: "python"
+            build_mode: "none"
           - project: "Vuln-Bookstore"
             repo: "https://github.com/Defcon2019/vulnerable-repo.git"
             language: "java"
+            build_mode: "autobuild"
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Clone target repository
         run: |
@@ -167,15 +193,16 @@ jobs:
         run: |
           APP="${{ matrix.project }}"
           if [ -d "$APP/src" ]; then
-            semgrep scan --config auto --json --output "$APP/semgrep/${APP}_semgrep.json" "$APP/src" || true
+            semgrep scan --config "p/${{ matrix.language }}" --error --json --output "$APP/semgrep/${APP}_semgrep.json" "$APP/src"
           fi
+        continue-on-error: true
 
       - name: Initialize CodeQL
         if: success()
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          build-mode: none
+          build-mode: ${{ matrix.build_mode }}
           config: |
             paths:
               - ${{ matrix.project }}/src
@@ -194,12 +221,9 @@ jobs:
         run: |
           APP="${{ matrix.project }}"
           rm -rf "$APP/src"
-          
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "$APP/semgrep/" "$APP/codeql/" "$APP/default/" || true
-          
           if ! git diff --cached --quiet; then
             git commit -m "SAST results for $APP"
             git pull --rebase origin main || true
