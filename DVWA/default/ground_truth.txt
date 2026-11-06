@@ -1,0 +1,63 @@
+Vulnerabilities
+DVWA as the name suggests is vulnerable to the most common types of web
+application vulnerabilities. DVWA incorporates most of the Open Web Application
+Security Project's (OWASP) top 10 web application security risks for 2010 as
+reported in the OWASP TOP 10 document. http://owasptop10.googlecode.com/files/
+OWASP%20Top%2010%20-%202010.pdf
+The OWASP Top 10 Web Application Security Risks for 2010 are:
+• A1: Injection
+• A2: Cross-Site Scripting (XSS)
+• A3: Broken Authentication and Session Management
+• A4: Insecure Direct Object References
+• A5: Cross-Site Request Forgery (CSRF)
+• A6: Security Misconfiguration
+• A7: Insecure Cryptographic Storage
+• A8: Failure to Restrict URL Access
+• A9: Insufficient Transport Layer Protection
+• A10: Unvalidated Redirects and Forwards
+Damn Vulnerable Web Application (DVWA) – Page 5
+Some of the web application vulnerabilities which DVWA contains;
+• Brute Force: HTTP Form Brute Force login page; used to test password
+brute force tools and show the insecurity of weak passwords.
+• Command Execution: Executes commands on the underlying operating
+system.
+• Cross Site Request Forgery (CSRF): Enables an ʻattackerʼ to change the
+applications admin password.
+• File Inclusion: Allows an ʻattackerʼ to include remote/local files into the web
+application.
+• SQL Injection: Enables an ʻattackerʼ to inject SQL statements into an HTTP
+form input box. DVWA includes Blind and Error based SQL injection.
+• Insecure File Upload: Allows an ʻattackerʼ to upload malicious files on to the
+web server.
+• Cross Site Scripting (XSS): An ʻattackerʼ can inject their own scripts into the
+web application/database. DVWA includes Reflected and Stored XSS.
+• Easter eggs: Full path Disclosure, Authentication bypass and some others.
+(find them!)
+Where they are:
+Low security
+Brute Force/Weak Passwords;
+http://127.0.0.1/dvwa/login.php
+http://127.0.0.1/dvwa/vulnerabilities/brute/
+Command Execution;
+http://127.0.0.1/dvwa/vulnerabilities/exec/
+Damn Vulnerable Web Application (DVWA) – Page 6
+Cross Site Request Forgery (CSRF);
+http://127.0.0.1/dvwa/vulnerabilities/csrf/
+File Inclusion;
+http://127.0.0.1/dvwa/vulnerabilities/fi/?page=include.php
+SQL Injection;
+http://127.0.0.1/dvwa/vulnerabilities/sqli/
+http://127.0.0.1/dvwa/vulnerabilities/brute/
+Insecure File Upload;
+http://127.0.0.1/dvwa/vulnerabilities/upload/
+Reflected Cross Site Scripting;
+http://127.0.0.1/dvwa/vulnerabilities/xss_r/
+Stored Cross Site Scripting;
+http://127.0.0.1/dvwa/vulnerabilities/xss_s/
+Full path Disclosure;
+Site wide. Set PHPSESSID to NULL. (Null Session Cookie) http://www.owasp.org/
+index.php/Full_Path_Disclosure
+Authentication bypass;
+If the admin changes the default password (password) and the 'attacker' knows what
+the default password is. The 'attacker' may access http://127.0.0.1/dvwa/setup.php
+to reset the database including the defau
