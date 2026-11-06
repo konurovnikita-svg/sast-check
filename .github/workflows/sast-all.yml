@@ -104,7 +104,7 @@ jobs:
             semgrep: true
             codeql_language: skip
           - project: Damn-Vulnerable-Flask-App
-            repo: https://github.com/realvuln/realvuln-damn-vulnerable-flask-application.git
+            repo: https://github.com/maximilianmarx/DVFA.git
             semgrep: true
             codeql_language: python
           - project: DVPWA
