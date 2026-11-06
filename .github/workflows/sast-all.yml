@@ -116,7 +116,7 @@ jobs:
             semgrep: true
             codeql_language: ruby
           - project: IWA
-            repo: https://github.com/OWASP/IWA.git
+            repo: https://github.com/fortify/IWA-Java.git
             semgrep: true
             codeql_language: javascript-typescript
           - project: DVNA
