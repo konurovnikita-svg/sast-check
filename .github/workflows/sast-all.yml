@@ -128,7 +128,7 @@ jobs:
             semgrep: true
             codeql_language: javascript-typescript
           - project: Vulnerable-React-App
-            repo: https://github.com/DevCyberNova/vulnerable-react-app.git
+            repo: https://github.com/vulnerable-apps/vulnerable-react-app.git
             semgrep: true
             codeql_language: javascript-typescript
           - project: Vulnerable-API
