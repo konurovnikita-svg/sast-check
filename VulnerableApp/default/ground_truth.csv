@@ -1,0 +1,2 @@
+CWE,File,Line,Type
+CWE-89,src/main.js,10,vuln
