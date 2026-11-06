@@ -1,3 +1,4 @@
+"
 name: SAST  (CodeQL & Semgrep)
 
 on:
@@ -199,4 +200,4 @@ jobs:
         with:
           name: consolidated-sast-reports
           path: consolidated-sast-reports.zip
-          retention-days: 14
+"
