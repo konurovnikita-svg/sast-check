@@ -1,5 +1,0 @@
-Clone failed.
-Repository: https://github.com/OWASP/BenchmarkJava.git
-
-Cloning into 'OWASP-Benchmark-Java/src'...
-fatal: could not read Username for 'https://github.com': terminal prompts disabled
