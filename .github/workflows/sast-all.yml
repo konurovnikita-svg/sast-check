@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  actions: read
 
-# Не допускаем параллельную запись в одну и ту же ветку из двух запусков workflow.
 concurrency:
   group: sast-check-${{ github.ref }}
   cancel-in-progress: false
@@ -15,358 +15,366 @@ jobs:
   scan:
     name: Scan ${{ matrix.project }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
     permissions:
       contents: read
     strategy:
       fail-fast: false
-      max-parallel: 5
+      max-parallel: 6
       matrix:
         include:
-          - project: "OWASP-Juice-Shop"
-            repo: "https://github.com/juice-shop/juice-shop.git"
-            codeql_language: "javascript-typescript"
-          - project: "OWASP-WebGoat"
-            repo: "https://github.com/WebGoat/WebGoat.git"
-            codeql_language: "java-kotlin"
-          - project: "OWASP-NodeGoat"
-            repo: "https://github.com/OWASP/NodeGoat.git"
-            codeql_language: "javascript-typescript"
-          - project: "DVWA"
-            repo: "https://github.com/digininja/DVWA.git"
-            codeql_language: ""
-          - project: "OWASP-Benchmark-Java"
-            repo: "https://github.com/OWASP-Benchmark/BenchmarkJava.git"
-            codeql_language: "java-kotlin"
-          - project: "VulnBookStore"
-            repo: "https://github.com/Defcon2019/vulnerable-repo.git"
-            codeql_language: "java-kotlin"
-          - project: "VulnShop-Django"
-            repo: "https://github.com/laugiov/code-safety.git"
-            codeql_language: "python"
-          - project: "PyGoat"
-            repo: "https://github.com/adeyosemanputra/pygoat.git"
-            codeql_language: "python"
-          - project: "VAmPI"
-            repo: "https://github.com/erev0s/VAmPI.git"
-            codeql_language: "python"
-          - project: "DVGA"
-            repo: "https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application.git"
-            codeql_language: "python"
-          - project: "VulnerableApp"
-            repo: "https://github.com/SasanLabs/VulnerableApp.git"
-            codeql_language: "java-kotlin"
-          - project: "OWASP-Mutillidae"
-            repo: "https://github.com/webpwnized/mutillidae.git"
-            codeql_language: ""
-          - project: "DVWS"
-            repo: "https://github.com/interference-security/DVWS.git"
-            codeql_language: ""
-          - project: "XVWA"
-            repo: "https://github.com/s4n7h0/xvwa.git"
-            codeql_language: ""
-          - project: "bWAPP"
-            repo: "https://github.com/jehy-security/bwapp.git"
-            codeql_language: ""
-          - project: "Vulnado"
-            repo: "https://github.com/ScaleSec/vulnado.git"
-            codeql_language: "java-kotlin"
-          - project: "WebGoat.NET"
-            repo: "https://github.com/jerryhoff/WebGoat.NET.git"
-            codeql_language: "csharp"
-          - project: "RailsGoat"
-            repo: "https://github.com/OWASP/railsgoat.git"
-            codeql_language: "ruby"
-          - project: "TicketMagpie"
-            repo: "https://github.com/dhatanian/ticketmagpie.git"
-            codeql_language: "java-kotlin"
-          - project: "Vulnerable-OTP-App"
-            repo: "https://github.com/mddanish/Vulnerable-OTP-Application.git"
-            codeql_language: ""
-          - project: "Damn-Vulnerable-Flask-App"
-            repo: "https://github.com/realvuln/realvuln-damn-vulnerable-flask-application.git"
-            codeql_language: "python"
-          - project: "DVPWA"
-            repo: "https://github.com/anxolerd/dvpwa.git"
-            codeql_language: "python"
-          - project: "Vuln-GraphQL-Ruby"
-            repo: "https://github.com/OWASP/vulnerable-graphql-ruby.git"
-            codeql_language: "ruby"
-          - project: "IWA"
-            repo: "https://github.com/OWASP/IWA.git"
-            codeql_language: "javascript-typescript"
-          - project: "DVNA"
-            repo: "https://github.com/appsecco/dvna.git"
-            codeql_language: "javascript-typescript"
-          - project: "Goof"
-            repo: "https://github.com/snyk/goof.git"
-            codeql_language: "javascript-typescript"
-          - project: "Vulnerable-React-App"
-            repo: "https://github.com/DevCyberNova/vulnerable-react-app.git"
-            codeql_language: "javascript-typescript"
-          - project: "Vulnerable-API"
-            repo: "https://github.com/DevCyberNova/vulnerable-api.git"
-            codeql_language: "javascript-typescript"
-          - project: "DjangoGoat"
-            repo: "https://github.com/adeyosemanputra/pygoat.git"
-            codeql_language: "python"
-          - project: "Vuln-Bookstore"
-            repo: "https://github.com/Defcon2019/vulnerable-repo.git"
-            codeql_language: "java-kotlin"
+          - project: OWASP-Juice-Shop
+            repo: https://github.com/juice-shop/juice-shop.git
+            semgrep: true
+            codeql_language: javascript-typescript
+          - project: OWASP-WebGoat
+            repo: https://github.com/WebGoat/WebGoat.git
+            semgrep: true
+            codeql_language: java-kotlin
+          - project: OWASP-NodeGoat
+            repo: https://github.com/OWASP/NodeGoat.git
+            semgrep: true
+            codeql_language: javascript-typescript
+          - project: DVWA
+            repo: https://github.com/digininja/DVWA.git
+            semgrep: true
+            codeql_language: skip
+          - project: OWASP-Benchmark-Java
+            repo: https://github.com/OWASP/BenchmarkJava.git
+            semgrep: true
+            codeql_language: java-kotlin
+          - project: VulnBookStore
+            repo: https://github.com/Defcon2019/vulnerable-repo.git
+            semgrep: true
+            codeql_language: java-kotlin
+          - project: VulnShop-Django
+            repo: https://github.com/laugiov/code-safety.git
+            semgrep: true
+            codeql_language: python
+          - project: PyGoat
+            repo: https://github.com/adeyosemanputra/pygoat.git
+            semgrep: true
+            codeql_language: python
+          - project: VAmPI
+            repo: https://github.com/erev0s/VAmPI.git
+            semgrep: true
+            codeql_language: python
+          - project: DVGA
+            repo: https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application.git
+            semgrep: true
+            codeql_language: python
+          - project: VulnerableApp
+            repo: https://github.com/SasanLabs/VulnerableApp.git
+            semgrep: true
+            codeql_language: java-kotlin
+          - project: OWASP-Mutillidae
+            repo: https://github.com/webpwnized/mutillidae.git
+            semgrep: true
+            codeql_language: skip
+          - project: DVWS
+            repo: https://github.com/interference-security/DVWS.git
+            semgrep: true
+            codeql_language: skip
+          - project: XVWA
+            repo: https://github.com/s4n7h0/xvwa.git
+            semgrep: true
+            codeql_language: skip
+          - project: bWAPP
+            repo: https://github.com/jehy-security/bwapp.git
+            semgrep: true
+            codeql_language: skip
+          - project: Vulnado
+            repo: https://github.com/ScaleSec/vulnado.git
+            semgrep: true
+            codeql_language: java-kotlin
+          - project: WebGoat.NET
+            repo: https://github.com/jerryhoff/WebGoat.NET.git
+            semgrep: true
+            codeql_language: csharp
+          - project: RailsGoat
+            repo: https://github.com/OWASP/railsgoat.git
+            semgrep: true
+            codeql_language: ruby
+          - project: TicketMagpie
+            repo: https://github.com/dhatanian/ticketmagpie.git
+            semgrep: true
+            codeql_language: java-kotlin
+          - project: Vulnerable-OTP-App
+            repo: https://github.com/mddanish/Vulnerable-OTP-Application.git
+            semgrep: true
+            codeql_language: skip
+          - project: Damn-Vulnerable-Flask-App
+            repo: https://github.com/realvuln/realvuln-damn-vulnerable-flask-application.git
+            semgrep: true
+            codeql_language: python
+          - project: DVPWA
+            repo: https://github.com/anxolerd/dvpwa.git
+            semgrep: true
+            codeql_language: python
+          - project: Vuln-GraphQL-Ruby
+            repo: https://github.com/OWASP/vulnerable-graphql-ruby.git
+            semgrep: true
+            codeql_language: ruby
+          - project: IWA
+            repo: https://github.com/OWASP/IWA.git
+            semgrep: true
+            codeql_language: javascript-typescript
+          - project: DVNA
+            repo: https://github.com/appsecco/dvna.git
+            semgrep: true
+            codeql_language: javascript-typescript
+          - project: Goof
+            repo: https://github.com/snyk/goof.git
+            semgrep: true
+            codeql_language: javascript-typescript
+          - project: Vulnerable-React-App
+            repo: https://github.com/DevCyberNova/vulnerable-react-app.git
+            semgrep: true
+            codeql_language: javascript-typescript
+          - project: Vulnerable-API
+            repo: https://github.com/DevCyberNova/vulnerable-api.git
+            semgrep: true
+            codeql_language: javascript-typescript
+          - project: DjangoGoat
+            repo: https://github.com/adeyosemanputra/pygoat.git
+            semgrep: true
+            codeql_language: python
+          - project: Vuln-Bookstore
+            repo: https://github.com/Defcon2019/vulnerable-repo.git
+            semgrep: true
+            codeql_language: java-kotlin
 
     steps:
-      - name: Checkout research repository
-        uses: actions/checkout@v6
+      - name: Checkout collector repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-      - name: Prepare result directories
+      - name: Create required directories
         env:
-          APP: ${{ matrix.project }}
+          PROJECT: ${{ matrix.project }}
+        shell: bash
         run: |
-          set -euo pipefail
-
-          mkdir -p "$APP/semgrep" "$APP/codeql"
-
-          # .gitkeep нужен только в действительно пустой папке.
-          for dir in "$APP/semgrep" "$APP/codeql"; do
-            if [ -z "$(find "$dir" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
-              touch "$dir/.gitkeep"
-            fi
-          done
+          mkdir -p "$PROJECT/default" "$PROJECT/semgrep" "$PROJECT/codeql"
+          touch "$PROJECT/default/.gitkeep" "$PROJECT/semgrep/.gitkeep" "$PROJECT/codeql/.gitkeep"
 
       - name: Clone target repository
         id: clone
         env:
-          APP: ${{ matrix.project }}
+          PROJECT: ${{ matrix.project }}
           REPO: ${{ matrix.repo }}
+        shell: bash
         run: |
-          set -euo pipefail
+          set +e
+          rm -rf "$PROJECT/src"
+          GIT_TERMINAL_PROMPT=0 git clone --depth 1 "$REPO" "$PROJECT/src" > /tmp/clone.log 2>&1
+          result=$?
+          set -e
 
-          # Не удаляем и не перезаписываем уже существующую src-папку.
-          if [ -e "$APP/src" ]; then
-            echo "Refusing to overwrite existing path: $APP/src"
-            exit 1
+          if [ "$result" -eq 0 ]; then
+            echo "cloned=true" >> "$GITHUB_OUTPUT"
+            rm -rf "$PROJECT/src/.git"
+            echo "Clone succeeded: $REPO"
+          else
+            echo "cloned=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "Clone failed."
+              echo "Repository: $REPO"
+              echo
+              cat /tmp/clone.log
+            } > "$PROJECT/semgrep/clone-error.txt"
+            echo "::warning title=Repository clone failed::$PROJECT could not be cloned; both scanners will be skipped."
+            cat /tmp/clone.log
           fi
 
-          git clone --depth 1 --no-tags "$REPO" "$APP/src"
-          rm -rf "$APP/src/.git"
-        continue-on-error: true
-
-      - name: Report clone failure
-        if: ${{ steps.clone.outcome != 'success' }}
+      - name: Check source files for CodeQL language
+        id: source
+        if: steps.clone.outputs.cloned == 'true' && matrix.codeql_language != 'skip'
         env:
-          APP: ${{ matrix.project }}
-          REPO: ${{ matrix.repo }}
+          PROJECT: ${{ matrix.project }}
+          CODEQL_LANGUAGE: ${{ matrix.codeql_language }}
+        shell: bash
         run: |
-          echo "## $APP: clone failed" >> "$GITHUB_STEP_SUMMARY"
-          echo "Could not clone $REPO. Semgrep and CodeQL were skipped; any previous reports are preserved." >> "$GITHUB_STEP_SUMMARY"
+          SRC="$PROJECT/src"
+          case "$CODEQL_LANGUAGE" in
+            javascript-typescript)
+              pattern='\.(js|jsx|mjs|cjs|ts|tsx|mts|cts|vue|html|htm)$'
+              ;;
+            python)
+              pattern='\.(py|pyw)$'
+              ;;
+            ruby)
+              pattern='\.(rb|erb|gemspec)$'
+              ;;
+            java-kotlin)
+              pattern='\.(java|kt|kts)$'
+              ;;
+            csharp)
+              pattern='\.(cs)$'
+              ;;
+            *)
+              pattern='a^'
+              ;;
+          esac
 
-      - name: Set up Python for Semgrep
-        if: ${{ steps.clone.outcome == 'success' }}
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
+          if find "$SRC" -type f | grep -Eiq "$pattern"; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "Source files for $CODEQL_LANGUAGE were found."
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "CodeQL skipped: no source files for $CODEQL_LANGUAGE were found."
+              echo "Expected file extensions: $pattern"
+            } > "$PROJECT/codeql/scan-status.txt"
+            echo "::warning title=No CodeQL source::$PROJECT contains no detected source files for $CODEQL_LANGUAGE."
+          fi
 
       - name: Install Semgrep
-        id: install_semgrep
-        if: ${{ steps.clone.outcome == 'success' }}
-        run: python -m pip install --upgrade semgrep
-        continue-on-error: true
+        if: steps.clone.outputs.cloned == 'true'
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check semgrep
 
       - name: Run Semgrep
-        if: ${{ steps.clone.outcome == 'success' && steps.install_semgrep.outcome == 'success' }}
-        env:
-          APP: ${{ matrix.project }}
-        run: |
-          set -euo pipefail
-
-          OUTPUT="$APP/semgrep/${APP}_semgrep.json"
-          TEMP_OUTPUT="$RUNNER_TEMP/${APP}_semgrep.json"
-          rm -f "$TEMP_OUTPUT"
-
-          # Сканируем весь исходный код; auto подбирает подходящие rulesets
-          # по языкам и manifest-файлам проекта.
-          if semgrep scan \
-            --config auto \
-            --metrics=off \
-            --json \
-            --output "$TEMP_OUTPUT" \
-            "$APP/src"; then
-
-            # Публикуем только корректный JSON с массивом results.
-            # При сбое старый отчёт в репозитории останется нетронутым.
-            if jq -e 'type == "object" and (.results | type == "array")' "$TEMP_OUTPUT" >/dev/null; then
-              cp "$TEMP_OUTPUT" "$OUTPUT"
-              echo "Semgrep report saved: $OUTPUT"
-            else
-              echo "Semgrep did not produce a valid JSON report; keeping the previous report."
-              echo "Semgrep produced invalid or incomplete JSON for $APP." >> "$GITHUB_STEP_SUMMARY"
-            fi
-          else
-            echo "Semgrep failed for $APP; keeping the previous report, if present."
-            echo "Semgrep failed for $APP. Check the step log; previous report was preserved." >> "$GITHUB_STEP_SUMMARY"
-          fi
+        id: semgrep
+        if: steps.clone.outputs.cloned == 'true'
         continue-on-error: true
+        env:
+          PROJECT: ${{ matrix.project }}
+        shell: bash
+        run: |
+          set +e
+          REPORT="$PROJECT/semgrep/${PROJECT}_semgrep.json"
+          TEMP_REPORT="$(mktemp)"
+          semgrep scan --config auto --json --output "$TEMP_REPORT" "$PROJECT/src"
+          result=$?
+          set -e
 
-      # PHP не поддерживается CodeQL. Semgrep при этом запускается для всех проектов.
+          if [ -s "$TEMP_REPORT" ] && jq -e . "$TEMP_REPORT" >/dev/null 2>&1; then
+            mv "$TEMP_REPORT" "$REPORT"
+            echo "Semgrep JSON report saved: $REPORT"
+            echo "Semgrep exit code: $result"
+          else
+            rm -f "$TEMP_REPORT"
+            {
+              echo "Semgrep did not produce a valid JSON report."
+              echo "Exit code: $result"
+              echo "An existing report, if present, was preserved."
+            } > "$PROJECT/semgrep/scan-status.txt"
+            echo "::warning title=Semgrep report missing::$PROJECT did not produce a valid JSON report."
+          fi
+
       - name: Initialize CodeQL
         id: codeql_init
-        if: ${{ steps.clone.outcome == 'success' && matrix.codeql_language != '' }}
+        continue-on-error: true
+        if: steps.clone.outputs.cloned == 'true' && matrix.codeql_language != 'skip' && steps.source.outputs.found == 'true'
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.codeql_language }}
-          # Java/Kotlin и C# — компилируемые языки: им нужен autobuild.
-          # Для интерпретируемых языков используем none.
-          build-mode: ${{ (matrix.codeql_language == 'java-kotlin' || matrix.codeql_language == 'csharp') && 'autobuild' || 'none' }}
-          source-root: ${{ matrix.project }}/src
-        continue-on-error: true
+          build-mode: none
 
-      - name: Run CodeQL analysis
-        id: codeql_analyze
-        if: ${{ steps.codeql_init.outcome == 'success' }}
+      - name: Analyze with CodeQL
+        if: steps.clone.outputs.cloned == 'true' && matrix.codeql_language != 'skip' && steps.source.outputs.found == 'true' && steps.codeql_init.outcome == 'success'
+        id: codeql
         uses: github/codeql-action/analyze@v4
-        with:
-          output: ${{ runner.temp }}/codeql-${{ matrix.project }}
-          upload: never
-          upload-database: false
         continue-on-error: true
-
-      - name: Preserve CodeQL SARIF
-        if: ${{ steps.codeql_analyze.outcome == 'success' }}
-        env:
-          APP: ${{ matrix.project }}
-        run: |
-          set -euo pipefail
-
-          CODEQL_DIR="$RUNNER_TEMP/codeql-$APP"
-          SARIF_FILE="$(find "$CODEQL_DIR" -type f -name '*.sarif' -print -quit || true)"
-
-          if [ -z "$SARIF_FILE" ]; then
-            echo "CodeQL completed but no SARIF file was found for $APP."
-            echo "No new CodeQL SARIF file was produced for $APP." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          if ! jq -e '.runs | type == "array"' "$SARIF_FILE" >/dev/null; then
-            echo "CodeQL SARIF is invalid; keeping the previous report, if present."
-            exit 0
-          fi
-
-          # Сохраняем оригинальное имя SARIF, созданное CodeQL.
-          cp "$SARIF_FILE" "$APP/codeql/$(basename "$SARIF_FILE")"
-          echo "CodeQL report saved in $APP/codeql/"
-
-      - name: Upload this project's reports
-        if: always()
-        uses: actions/upload-artifact@v7
         with:
-          name: scan-${{ matrix.project }}
-          path: |
-            ${{ matrix.project }}/semgrep/**
-            ${{ matrix.project }}/codeql/**
-          include-hidden-files: true
-          if-no-files-found: ignore
-          retention-days: 2
+          output: ${{ matrix.project }}/codeql
+          upload: false
 
-  commit-results:
-    name: Save all reports to the repository
+      - name: Record CodeQL analysis failure
+        if: always() && (steps.codeql_init.outcome == 'failure' || steps.codeql.outcome == 'failure')
+        env:
+          PROJECT: ${{ matrix.project }}
+          INIT_OUTCOME: ${{ steps.codeql_init.outcome }}
+          ANALYZE_OUTCOME: ${{ steps.codeql.outcome }}
+        shell: bash
+        run: |
+          {
+            echo "CodeQL analysis failed."
+            echo "Initialization: $INIT_OUTCOME"
+            echo "Analyze: $ANALYZE_OUTCOME"
+            echo "See this job's CodeQL logs for the detailed error."
+          } > "$PROJECT/codeql/scan-status.txt"
+
+      - name: Record CodeQL skip reason
+        if: always() && (matrix.codeql_language == 'skip' || steps.clone.outputs.cloned != 'true' || (steps.source.outcome == 'success' && steps.source.outputs.found != 'true'))
+        env:
+          PROJECT: ${{ matrix.project }}
+          CODEQL_LANGUAGE: ${{ matrix.codeql_language }}
+          CLONED: ${{ steps.clone.outputs.cloned }}
+        shell: bash
+        run: |
+          if [ "$CLONED" != "true" ]; then
+            echo "CodeQL was not run because cloning failed." > "$PROJECT/codeql/scan-status.txt"
+          elif [ "$CODEQL_LANGUAGE" = "skip" ]; then
+            echo "CodeQL does not support this project's configured language. Semgrep was still run." > "$PROJECT/codeql/scan-status.txt"
+          elif [ ! -f "$PROJECT/codeql/scan-status.txt" ]; then
+            echo "CodeQL source detection did not complete. Check the job log." > "$PROJECT/codeql/scan-status.txt"
+          fi
+
+      - name: Upload project results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-${{ matrix.project }}
+          path: ${{ matrix.project }}/
+          if-no-files-found: warn
+          retention-days: 3
+
+  save-results:
+    name: Save all project results
+    runs-on: ubuntu-latest
     needs: scan
     if: always()
-    runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
     steps:
-      - name: Checkout research repository
-        uses: actions/checkout@v6
+      - name: Checkout collector repository
+        uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
-          fetch-depth: 0
+          ref: ${{ github.ref_name }}
 
-      - name: Create missing folders only
-        run: |
-          set -euo pipefail
-
-          projects=(
-            "OWASP-Juice-Shop" "OWASP-WebGoat" "OWASP-NodeGoat" "DVWA" "OWASP-Benchmark-Java"
-            "VulnBookStore" "VulnShop-Django" "PyGoat" "VAmPI" "DVGA"
-            "VulnerableApp" "OWASP-Mutillidae" "DVWS" "XVWA" "bWAPP"
-            "Vulnado" "WebGoat.NET" "RailsGoat" "TicketMagpie" "Vulnerable-OTP-App"
-            "Damn-Vulnerable-Flask-App" "DVPWA" "Vuln-GraphQL-Ruby" "IWA" "DVNA"
-            "Goof" "Vulnerable-React-App" "Vulnerable-API" "DjangoGoat" "Vuln-Bookstore"
-          )
-
-          for project in "${projects[@]}"; do
-            for folder in default semgrep codeql; do
-              dir="$project/$folder"
-              mkdir -p "$dir"
-
-              # Не добавляем .gitkeep в папки, где уже есть файлы.
-              if [ -z "$(find "$dir" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
-                touch "$dir/.gitkeep"
-              fi
-            done
-          done
-
-      - name: Download matrix reports
-        uses: actions/download-artifact@v8
+      - name: Download project artifacts
+        uses: actions/download-artifact@v4
         with:
-          pattern: scan-*
-          path: _scan_artifacts
+          pattern: project-*
+          path: downloaded-results
           merge-multiple: false
 
-      - name: Copy reports into project folders
+      - name: Merge project results without touching default files
+        shell: bash
         run: |
-          set -euo pipefail
           shopt -s nullglob
+          for artifact_dir in downloaded-results/project-*; do
+            project="${artifact_dir##*/project-}"
+            mkdir -p "$project/semgrep" "$project/codeql" "$project/default"
 
-          for artifact_dir in _scan_artifacts/scan-*; do
-            project="${artifact_dir##*/scan-}"
-
+            # Copy scanner outputs and status files. Never replace default/:
+            # it is reserved for manually maintained ground-truth data.
             if [ -d "$artifact_dir/semgrep" ]; then
-              mkdir -p "$project/semgrep"
               cp -a "$artifact_dir/semgrep/." "$project/semgrep/"
             fi
-
             if [ -d "$artifact_dir/codeql" ]; then
-              mkdir -p "$project/codeql"
               cp -a "$artifact_dir/codeql/." "$project/codeql/"
             fi
+            touch "$project/default/.gitkeep" "$project/semgrep/.gitkeep" "$project/codeql/.gitkeep"
           done
 
-      - name: Commit and push reports
+      - name: Commit and push results
         env:
-          BRANCH_NAME: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
-          set -euo pipefail
-
-          if [[ "$GITHUB_REF" != refs/heads/* ]]; then
-            echo "This workflow run is not on a branch; skipping git push."
-            exit 0
-          fi
-
-          projects=(
-            "OWASP-Juice-Shop" "OWASP-WebGoat" "OWASP-NodeGoat" "DVWA" "OWASP-Benchmark-Java"
-            "VulnBookStore" "VulnShop-Django" "PyGoat" "VAmPI" "DVGA"
-            "VulnerableApp" "OWASP-Mutillidae" "DVWS" "XVWA" "bWAPP"
-            "Vulnado" "WebGoat.NET" "RailsGoat" "TicketMagpie" "Vulnerable-OTP-App"
-            "Damn-Vulnerable-Flask-App" "DVPWA" "Vuln-GraphQL-Ruby" "IWA" "DVNA"
-            "Goof" "Vulnerable-React-App" "Vulnerable-API" "DjangoGoat" "Vuln-Bookstore"
-          )
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          for project in "${projects[@]}"; do
-            git add -- "$project/default" "$project/semgrep" "$project/codeql"
-          done
-
+          git add -- '*/semgrep/*' '*/codeql/*' '*/default/.gitkeep'
           if git diff --cached --quiet; then
-            echo "No folder or report changes to commit."
+            echo "No report changes to commit."
             exit 0
           fi
 
-          git commit -m "Update SAST reports"
-
-          # Подтягиваем возможные новые коммиты ветки перед отправкой.
-          git fetch origin "$BRANCH_NAME"
-          git rebase "origin/$BRANCH_NAME"
-          git push origin "HEAD:$BRANCH_NAME"
+          git commit -m "Update SAST scan results"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_REF_NAME}"
