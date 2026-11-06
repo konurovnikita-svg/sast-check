@@ -1,0 +1,5 @@
+Clone failed.
+Repository: https://github.com/DevCyberNova/vulnerable-api.git
+
+Cloning into 'Vulnerable-API/src'...
+fatal: could not read Username for 'https://github.com': terminal prompts disabled

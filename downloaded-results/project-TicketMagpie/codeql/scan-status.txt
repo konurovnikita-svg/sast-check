@@ -1,0 +1,2 @@
+CodeQL skipped: no source files for java-kotlin were found.
+Expected file extensions: \.(java|kt|kts)$

@@ -1,0 +1,2 @@
+CodeQL skipped: no source files for python were found.
+Expected file extensions: \.(py|pyw)$

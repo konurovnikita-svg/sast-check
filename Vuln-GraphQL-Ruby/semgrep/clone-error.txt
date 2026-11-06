@@ -1,0 +1,5 @@
+Clone failed.
+Repository: https://github.com/OWASP/vulnerable-graphql-ruby.git
+
+Cloning into 'Vuln-GraphQL-Ruby/src'...
+fatal: could not read Username for 'https://github.com': terminal prompts disabled

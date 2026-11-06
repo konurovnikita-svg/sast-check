@@ -1,0 +1,5 @@
+Clone failed.
+Repository: https://github.com/DevCyberNova/vulnerable-react-app.git
+
+Cloning into 'Vulnerable-React-App/src'...
+fatal: could not read Username for 'https://github.com': terminal prompts disabled

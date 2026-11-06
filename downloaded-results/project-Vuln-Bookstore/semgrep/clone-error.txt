@@ -1,0 +1,5 @@
+Clone failed.
+Repository: https://github.com/Defcon2019/vulnerable-repo.git
+
+Cloning into 'Vuln-Bookstore/src'...
+fatal: could not read Username for 'https://github.com': terminal prompts disabled

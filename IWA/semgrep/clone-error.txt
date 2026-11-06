@@ -1,0 +1,5 @@
+Clone failed.
+Repository: https://github.com/OWASP/IWA.git
+
+Cloning into 'IWA/src'...
+fatal: could not read Username for 'https://github.com': terminal prompts disabled

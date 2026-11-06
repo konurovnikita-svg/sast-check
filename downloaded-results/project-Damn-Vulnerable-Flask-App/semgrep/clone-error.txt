@@ -1,0 +1,5 @@
+Clone failed.
+Repository: https://github.com/realvuln/realvuln-damn-vulnerable-flask-application.git
+
+Cloning into 'Damn-Vulnerable-Flask-App/src'...
+fatal: could not read Username for 'https://github.com': terminal prompts disabled

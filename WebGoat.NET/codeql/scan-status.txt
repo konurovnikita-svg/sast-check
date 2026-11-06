@@ -1,0 +1,2 @@
+CodeQL skipped: no source files for csharp were found.
+Expected file extensions: \.(cs)$
