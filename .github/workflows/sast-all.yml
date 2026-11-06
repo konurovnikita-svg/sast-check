@@ -1,0 +1,141 @@
+name: Setup Folders and Run SAST (30 Benchmarks)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  security-events: write
+
+jobs:
+  # ==========================================
+  # ЗАДАЧА 1: Создание структуры папок
+  # ==========================================
+  setup-folders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create folder structure for all 30 benchmark projects
+        run: |
+          projects=(
+            "OWASP-Juice-Shop" "OWASP-WebGoat" "OWASP-NodeGoat" "DVWA" "OWASP-Benchmark-Java"
+            "VulnBookStore" "VulnShop-Django" "PyGoat" "VAmPI" "DVGA"
+            "VulnerableApp" "OWASP-Mutillidae" "DVWS" "XVWA" "bWAPP"
+            "Vulnado" "WebGoat.NET" "RailsGoat" "TicketMagpie" "Vulnerable-OTP-App"
+            "Damn-Vulnerable-Flask-App" "DVPWA" "Vuln-GraphQL-Ruby" "IWA" "DVNA"
+            "Goof" "Vulnerable-React-App" "Vulnerable-API" "DjangoGoat" "Vuln-Bookstore"
+          )
+          for proj in "${projects[@]}"; do
+            mkdir -p "$proj/default"
+            mkdir -p "$proj/semgrep"
+            mkdir -p "$proj/codeql"
+            touch "$proj/default/.gitkeep" "$proj/semgrep/.gitkeep" "$proj/codeql/.gitkeep"
+          done
+
+      - name: Commit and push folder structure
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-create folder structure for 30 benchmark apps"
+          git push || echo "Nothing to push"
+
+  # ==========================================
+  # ЗАДАЧА 2: Запуск SAST (Semgrep и CodeQL)
+  # ==========================================
+  run-sast:
+    needs: setup-folders
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - "OWASP-Juice-Shop"
+          - "OWASP-WebGoat"
+          - "OWASP-NodeGoat"
+          - "DVWA"
+          - "OWASP-Benchmark-Java"
+          - "VulnBookStore"
+          - "VulnShop-Django"
+          - "PyGoat"
+          - "VAmPI"
+          - "DVGA"
+          - "VulnerableApp"
+          - "OWASP-Mutillidae"
+          - "DVWS"
+          - "XVWA"
+          - "bWAPP"
+          - "Vulnado"
+          - "WebGoat.NET"
+          - "RailsGoat"
+          - "TicketMagpie"
+          - "Vulnerable-OTP-App"
+          - "Damn-Vulnerable-Flask-App"
+          - "DVPWA"
+          - "Vuln-GraphQL-Ruby"
+          - "IWA"
+          - "DVNA"
+          - "Goof"
+          - "Vulnerable-React-App"
+          - "Vulnerable-API"
+          - "DjangoGoat"
+          - "Vuln-Bookstore"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ----------------------------------------
+      # SEMGREP
+      # ----------------------------------------
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep on ${{ matrix.project }}
+        run: |
+          APP="${{ matrix.project }}"
+          semgrep scan --config auto --json --output semgrep-result.json "$APP" || true
+
+      - name: Save Semgrep Result
+        run: |
+          APP="${{ matrix.project }}"
+          mv semgrep-result.json "$APP/semgrep/findings.json"
+
+      # ----------------------------------------
+      # CODEQL
+      # ----------------------------------------
+      # ВАЖНО: CodeQL требует указания языка. 
+      # Для универсальности можно использовать `language: [javascript, python, java, csharp, ruby]`
+      # но это может замедлить анализ. Если проект на конкретном языке, укажите его.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, python, java, csharp, ruby
+          config: |
+            paths:
+              - ${{ matrix.project }}
+            paths-ignore:
+              - '**/test/**'
+              - '**/node_modules/**'
+
+      - name: Autobuild CodeQL
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          output: ${{ matrix.project }}/codeql
+          upload: false
+
+      # ----------------------------------------
+      # СОХРАНЕНИЕ РЕЗУЛЬТАТОВ В GIT
+      # ----------------------------------------
+      - name: Commit and Push Results
+        run: |
+          APP="${{ matrix.project }}"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add "$APP/semgrep/" "$APP/codeql/"
+          git diff --quiet && git diff --staged --quiet || git commit -m "SAST results for $APP"
+          git push || echo "Push failed for $APP, but continuing"
