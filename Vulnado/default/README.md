@@ -1,1 +1,1 @@
-Шаблон создан. Заполните реальными уязвимостями.
+https://github.com/bbhunter/vulnado
