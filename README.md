@@ -134,9 +134,9 @@ OWASP-Benchmark-Java — https://github.com/OWASP/BenchmarkJava.git — CodeQL: 
 
 VulnBookStore — https://github.com/Defcon2019/vulnerable-repo.git — CodeQL: java-kotlin — дубль с №30
 
-VulnShop-Django — https://github.com/laugiov/code-safety.git — CodeQL: python — проверить соответствие названию
+VulnShop-Django — https://github.com/laugiov/code-safety.git — CodeQL: python 
 
-PyGoat — https://github.com/adeyosemanputra/pygoat.git — CodeQL: python — дубль с №29
+PyGoat — https://github.com/adeyosemanputra/pygoat.git — CodeQL: python 
 
 VAmPI — https://github.com/erev0s/VAmPI.git — CodeQL: python
 
@@ -178,7 +178,7 @@ Vulnerable-React-App — https://github.com/vulnerable-apps/vulnerable-react-app
 
 Vulnerable-API — https://github.com/jorritfolmer/vulnerable-api.git — CodeQL: javascript-typescript
 
-DjangoGoat — https://github.com/adeyosemanputra/pygoat.git — CodeQL: python — дубль с №8, фактически PyGoat
+DjangoGoat — https://github.com/adeyosemanputra/pygoat.git — CodeQL: python 
 
 Vuln-Bookstore — https://github.com/Defcon2019/vulnerable-repo.git — CodeQL: java-kotlin 
 
