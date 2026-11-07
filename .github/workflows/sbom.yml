@@ -1,0 +1,109 @@
+name: SBOM Scan Vulnerable Apps
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sbom-scan:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 30 проектов: имя (для папки) и URL репозитория
+          - name: DVGA
+            repo: https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application
+          - name: DVNA
+            repo: https://github.com/appsecco/dvna
+          - name: DVPWA
+            repo: https://github.com/anxolerd/dvpwa
+          - name: DVWA
+            repo: https://github.com/digininja/DVWA
+          - name: DVWS
+            repo: https://github.com/interference-security/DVWS
+          - name: Damn-Vulnerable-Flask-App
+            repo: https://github.com/fatinsourav/Damn-Vulnerable-Flask-Application
+          - name: DjangoGoat
+            repo: https://github.com/s-santillan/DjangoGoat
+          - name: Goof
+            repo: https://github.com/snyk/goof
+          - name: IWA
+            repo: https://github.com/fortify-presales/IWA-Java
+          - name: OWASP-Benchmark-Java
+            repo: https://github.com/OWASP-Benchmark/BenchmarkJava
+          - name: OWASP-Juice-Shop
+            repo: https://github.com/juice-shop/juice-shop
+          - name: OWASP-Mutillidae
+            repo: https://github.com/webpwnized/mutillidae
+          - name: OWASP-NodeGoat
+            repo: https://github.com/OWASP/NodeGoat
+          - name: OWASP-WebGoat
+            repo: https://github.com/WebGoat/WebGoat
+          - name: PyGoat
+            repo: https://github.com/adeyosemanputra/pygoat
+          - name: RailsGoat
+            repo: https://github.com/OWASP/railsgoat
+          - name: TicketMagpie
+            repo: https://github.com/dhatanian/ticketmagpie
+          - name: VAmPI
+            repo: https://github.com/erev0s/VAmPI
+          - name: Vuln-Bookstore
+            repo: https://github.com/tobiasbruss/vulnerable-repo
+          - name: Vuln-GraphQL-Ruby
+            repo: https://github.com/kaakaww/vuln-graphql-ruby
+          - name: VulnBookStore          # дубликат Vuln-Bookstore, но оставлен по запросу
+            repo: https://github.com/tobiasbruss/vulnerable-repo
+          - name: VulnShop-Django       # ближайший публичный аналог (Node.js, не Django)
+            repo: https://github.com/nr-yolo/Vulnshop
+          - name: Vulnado
+            repo: https://github.com/ScaleSec/vulnado
+          - name: Vulnerable-API
+            repo: https://github.com/mattvaldes/vulnerable-api
+          - name: Vulnerable-OTP-App
+            repo: https://github.com/mddanish/Vulnerable-OTP-Application
+          - name: Vulnerable-React-App
+            repo: https://github.com/vulnerable-apps/vulnerable-react-app
+          - name: VulnerableApp
+            repo: https://github.com/SasanLabs/VulnerableApp
+          - name: WebGoat.NET
+            repo: https://github.com/jerryhoff/WebGoat.NET
+          - name: XVWA
+            repo: https://github.com/s4n7h0/xvwa
+          - name: bWAPP
+            repo: https://github.com/lelouch-repo/buggy-app
+
+    steps:
+      # 1. Клонируем сканируемый проект в папку с его именем
+      - name: Clone ${{ matrix.name }}
+        run: git clone --depth 1 ${{ matrix.repo }} ${{ matrix.name }}
+
+      # 2. Устанавливаем Syft (официальный установщик Anchore)
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      # 3. Устанавливаем CDXgen
+      - name: Install CDXgen
+        run: npm install -g @cyclonedx/cdxgen
+
+      # 4. Создаём папку для результатов
+      - name: Prepare output dir
+        run: mkdir -p output/${{ matrix.name }}
+
+      # 5. Генерируем SBOM через Syft (CycloneDX JSON)
+      - name: Run Syft
+        run: |
+          syft dir:${{ matrix.name }} \
+            -o cyclonedx-json=output/${{ matrix.name }}/syft-bom.cdx.json
+
+      # 6. Генерируем SBOM через CDXgen (CycloneDX JSON)
+      - name: Run CDXgen
+        run: |
+          cdxgen -o output/${{ matrix.name }}/cdxgen-bom.cdx.json ${{ matrix.name }}
+
+      # 7. Загружаем артефакты (папка output/<имя-проекта>/)
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.name }}
+          path: output/${{ matrix.name }}/
+          if-no-files-found: error
