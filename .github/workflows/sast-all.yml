@@ -84,7 +84,7 @@ jobs:
             semgrep: true
             codeql_language: skip
           - project: Vulnado
-            repo: https://github.com/ScaleSec/vulnado.git
+            repo: https://github.com/bbhunter/vulnado.git
             semgrep: true
             codeql_language: java-kotlin
           - project: WebGoat.NET
@@ -128,7 +128,7 @@ jobs:
             semgrep: true
             codeql_language: javascript-typescript
           - project: Vulnerable-React-App
-            repo: https://github.com/vulnerable-apps/javulna.git
+            repo: https://github.com/vulnerable-apps/vulnerable-react-app
             semgrep: true
             codeql_language: javascript-typescript
           - project: Vulnerable-API
