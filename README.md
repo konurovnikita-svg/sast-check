@@ -169,13 +169,13 @@ DVPWA — https://github.com/anxolerd/dvpwa.git — CodeQL: python
 
 Vuln-GraphQL-Ruby — https://github.com/rmosolgo/graphql-ruby.git — CodeQL: ruby
 
-IWA — https://github.com/fortify/IWA-Java.git — CodeQL: javascript-typescript — проверить, Java-репо с js-языком
+IWA — https://github.com/fortify/IWA-Java.git — CodeQL: javascript-typescript, Java-репо с js-языком
 
 DVNA — https://github.com/appsecco/dvna.git — CodeQL: javascript-typescript
 
 Goof — https://github.com/snyk/goof.git — CodeQL: javascript-typescript
 
-Vulnerable-React-App — https://github.com/vulnerable-apps/vulnerable-react-app — CodeQL: javascript-typescript — без .git на конце
+Vulnerable-React-App — https://github.com/vulnerable-apps/vulnerable-react-app.git — CodeQL: javascript-typescript
 
 Vulnerable-API — https://github.com/jorritfolmer/vulnerable-api.git — CodeQL: javascript-typescript
 
