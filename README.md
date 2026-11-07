@@ -132,7 +132,7 @@ DVWA — https://github.com/digininja/DVWA.git — CodeQL: skip
 
 OWASP-Benchmark-Java — https://github.com/OWASP/BenchmarkJava.git — CodeQL: java-kotlin
 
-VulnBookStore — https://github.com/Defcon2019/vulnerable-repo.git — CodeQL: java-kotlin — дубль с №30
+VulnBookStore — https://github.com/Defcon2019/vulnerable-repo.git — CodeQL: java-kotlin 
 
 VulnShop-Django — https://github.com/laugiov/code-safety.git — CodeQL: python 
 
@@ -154,7 +154,7 @@ bWAPP — https://github.com/jehy-security/bwapp.git — CodeQL: skip
 
 Vulnado — https://github.com/bbhunter/vulnado.git — CodeQL: java-kotlin
 
-WebGoat.NET — https://github.com/jerryhoff/WebGoat.NET.git — CodeQL: csharp
+WebGoat.NET — https://github.com/jerryhoff/WebGoat.NET.git — CodeQL: C#
 
 RailsGoat — https://github.com/OWASP/railsgoat.git — CodeQL: ruby
 
