@@ -132,7 +132,7 @@ jobs:
             semgrep: true
             codeql_language: javascript-typescript
           - project: Vulnerable-API
-            repo: https://github.com/DevCyberNova/vulnerable-api.git
+            repo: https://github.com/jorritfolmer/vulnerable-api.git
             semgrep: true
             codeql_language: javascript-typescript
           - project: DjangoGoat
