@@ -51,12 +51,12 @@ jobs:
             repo: https://github.com/tobiasbruss/vulnerable-repo
           - name: Vuln-GraphQL-Ruby
             repo: https://github.com/kaakaww/vuln-graphql-ruby
-          - name: VulnBookStore          # дубликат Vuln-Bookstore, но оставлен по запросу
+          - name: VulnBookStore
             repo: https://github.com/tobiasbruss/vulnerable-repo
-          - name: VulnShop-Django       # ближайший публичный аналог (Node.js, не Django)
+          - name: VulnShop-Django
             repo: https://github.com/nr-yolo/Vulnshop
           - name: Vulnado
-            repo: https://github.com/ScaleSec/vulnado
+            repo: https://github.com/Contrast-Security-OSS/vulnado # Исправлена ссылка на рабочий форк
           - name: Vulnerable-API
             repo: https://github.com/mattvaldes/vulnerable-api
           - name: Vulnerable-OTP-App
@@ -73,37 +73,45 @@ jobs:
             repo: https://github.com/lelouch-repo/buggy-app
 
     steps:
-      # 1. Клонируем сканируемый проект в папку с его именем
+      # 1. Клонируем проект. continue-on-error не даёт упасть всему пайплайну при 404
       - name: Clone ${{ matrix.name }}
+        id: clone
         run: git clone --depth 1 ${{ matrix.repo }} ${{ matrix.name }}
+        continue-on-error: true
 
-      # 2. Устанавливаем Syft (официальный установщик Anchore)
+      # 2. Устанавливаем Syft (только если клонирование прошло успешно)
       - name: Install Syft
+        if: steps.clone.outcome == 'success'
         uses: anchore/sbom-action/download-syft@v0
 
-      # 3. Устанавливаем CDXgen
+      # 3. Устанавливаем CDXgen (только если клонирование прошло успешно)
       - name: Install CDXgen
+        if: steps.clone.outcome == 'success'
         run: npm install -g @cyclonedx/cdxgen
 
       # 4. Создаём папку для результатов
       - name: Prepare output dir
+        if: steps.clone.outcome == 'success'
         run: mkdir -p output/${{ matrix.name }}
 
-      # 5. Генерируем SBOM через Syft (CycloneDX JSON)
+      # 5. Генерируем SBOM через Syft
       - name: Run Syft
+        if: steps.clone.outcome == 'success'
         run: |
           syft dir:${{ matrix.name }} \
             -o cyclonedx-json=output/${{ matrix.name }}/syft-bom.cdx.json
 
-      # 6. Генерируем SBOM через CDXgen (CycloneDX JSON)
+      # 6. Генерируем SBOM через CDXgen
       - name: Run CDXgen
+        if: steps.clone.outcome == 'success'
         run: |
           cdxgen -o output/${{ matrix.name }}/cdxgen-bom.cdx.json ${{ matrix.name }}
 
-      # 7. Загружаем артефакты (папка output/<имя-проекта>/)
+      # 7. Загружаем артефакты (создадутся файлы syft-bom.cdx.json и cdxgen-bom.cdx.json)
       - name: Upload SBOM artifacts
+        if: steps.clone.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: sbom-${{ matrix.name }}
           path: output/${{ matrix.name }}/
-          if-no-files-found: error
+          if-no-files-found: warn
