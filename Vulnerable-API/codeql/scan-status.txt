@@ -1,1 +1,2 @@
-CodeQL was not run because cloning failed.
+CodeQL skipped: no source files for javascript-typescript were found.
+Expected file extensions: \.(js|jsx|mjs|cjs|ts|tsx|mts|cts|vue|html|htm)$
