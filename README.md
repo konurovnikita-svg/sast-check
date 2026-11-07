@@ -22,7 +22,7 @@ sast-check/
 ├── repos/                      # upstream-репозитории / сабмодули
 ├── sbom-tables/                # таблицы SBOM
 ├── .gitmodules                 # ссылки на upstream-репозитории
-├── Таблицы сравнения результатов.docx # сравнение Semgrep и QodeQL на основе эталонных данных
+├── sast-table.docx # сравнение Semgrep и QodeQL на основе эталонных данных
 └── README.md
 ```
 
