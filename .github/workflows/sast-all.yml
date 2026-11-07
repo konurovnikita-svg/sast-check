@@ -136,7 +136,7 @@ jobs:
             semgrep: true
             codeql_language: javascript-typescript
           - project: DjangoGoat
-            repo: https://github.com/adeyosemanputra/pygoat.git
+            repo: https://github.com/red-and-black/DjangoGoat.git
             semgrep: true
             codeql_language: python
           - project: Vuln-Bookstore
