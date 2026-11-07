@@ -1,3 +1,4 @@
+<img width="690" height="729" alt="image" src="https://github.com/user-attachments/assets/33178e8f-5e44-4c98-8112-a1e543a49ebc" />
 
 Намеренные ошибки в коде магазина (OWASP Top 10)
 
