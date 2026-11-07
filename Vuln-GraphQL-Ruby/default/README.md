@@ -1,1 +1,1 @@
-Шаблон создан. Вам нужно вписать сюда реальные уязвимости для Vuln-GraphQL-Ruby.
+https://github.com/rmosolgo/graphql-ruby/security/advisories
